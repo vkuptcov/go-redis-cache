@@ -2,11 +2,14 @@ package cache
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/go-redis/redis/v8"
 )
+
+var ErrCacheMiss = errors.New("cache: key is missing")
 
 type rediser interface {
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
@@ -59,11 +62,13 @@ type Item struct {
 }
 
 func (item *Item) value() (interface{}, error) {
-	if item.Load != nil {
-		return item.Load(item)
-	}
 	if item.Value != nil {
 		return item.Value, nil
+	}
+	if item.Load != nil {
+		val, err := item.Load(item)
+		item.Value = val
+		return val, err
 	}
 	return nil, nil
 }
@@ -117,7 +122,7 @@ func (cd *Cache) SetKV(ctx context.Context, keyValPairs ...interface{}) (err err
 	for id := 0; id < len(keyValPairs); id += 2 {
 		key, ok := keyValPairs[id].(string)
 		if !ok {
-			return errors.Errorf("string key expected for position %d, `%#+v` of type %T given", id, keyValPairs[id])
+			return errors.Errorf("string key expected for position %d, `%#+v` of type %T given", id, keyValPairs[id], keyValPairs[id])
 		}
 		items[id/2] = &Item{
 			Key:   key,
@@ -126,6 +131,11 @@ func (cd *Cache) SetKV(ctx context.Context, keyValPairs ...interface{}) (err err
 		}
 	}
 	return cd.Set(ctx, items...)
+}
+
+// Get gets the value for the given key.
+func (cd *Cache) Get(ctx context.Context, dst interface{}, key string) error {
+	return cd.get(ctx, dst, key)
 }
 
 func (cd *Cache) set(ctx context.Context, redis rediser, item *Item) error {
@@ -148,6 +158,24 @@ func (cd *Cache) set(ctx context.Context, redis rediser, item *Item) error {
 	}
 
 	return redis.Set(ctx, item.Key, b, cd.redisTTL(item)).Err()
+}
+
+func (cd *Cache) get(ctx context.Context, dst interface{}, key string) error {
+	b, err := cd.getBytes(ctx, key)
+	if err != nil {
+		return err
+	}
+	return cd.Unmarshal(b, dst)
+}
+
+func (cd *Cache) getBytes(ctx context.Context, key string) ([]byte, error) {
+	b, err := cd.opt.Redis.Get(ctx, key).Bytes()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, ErrCacheMiss
+		}
+	}
+	return b, err
 }
 
 func (cd *Cache) redisTTL(item *Item) time.Duration {

@@ -1,5 +1,9 @@
 package cache
 
+import (
+	"reflect"
+)
+
 type Marshaller interface {
 	Marshal(value interface{}) ([]byte, error)
 	Unmarshal(data []byte, dst interface{}) error
@@ -39,6 +43,12 @@ func (m *baseMarshaller) Unmarshal(data []byte, dst interface{}) error {
 	case *string:
 		*v = string(data)
 		return nil
+	case *interface{}:
+		t := reflect.Indirect(reflect.ValueOf(dst)).Elem().Kind()
+		if t == reflect.String {
+			*v = string(data)
+			return nil
+		}
 	}
 
 	return m.customMarshaller.Unmarshal(data, dst)
