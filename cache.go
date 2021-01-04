@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -134,8 +135,8 @@ func (cd *Cache) SetKV(ctx context.Context, keyValPairs ...interface{}) (err err
 }
 
 // Get gets the value for the given key.
-func (cd *Cache) Get(ctx context.Context, dst interface{}, key string) error {
-	return cd.get(ctx, dst, key)
+func (cd *Cache) Get(ctx context.Context, dst interface{}, keys ...string) error {
+	return cd.get(ctx, dst, keys)
 }
 
 func (cd *Cache) set(ctx context.Context, redis rediser, item *Item) error {
@@ -160,22 +161,75 @@ func (cd *Cache) set(ctx context.Context, redis rediser, item *Item) error {
 	return redis.Set(ctx, item.Key, b, cd.redisTTL(item)).Err()
 }
 
-func (cd *Cache) get(ctx context.Context, dst interface{}, key string) error {
-	b, err := cd.getBytes(ctx, key)
-	if err != nil {
-		return err
+func (cd *Cache) get(ctx context.Context, dst interface{}, keys []string) error {
+	loadedBytes, loadedElementsCount, loadErr := cd.getBytes(ctx, keys)
+
+	if len(keys) == 1 {
+		if loadErr != nil {
+			return loadErr
+		}
+		return cd.Unmarshal(loadedBytes[0], dst)
 	}
-	return cd.Unmarshal(b, dst)
+	container, containerErr := newContainer(dst)
+	if containerErr != nil {
+		return containerErr
+	}
+	container.initWithSize(loadedElementsCount)
+	for idx, b := range loadedBytes {
+		dstEl := container.dstEl()
+		unmarshalErr := cd.Unmarshal(b, dstEl)
+		if unmarshalErr != nil {
+			// @todo init and add KeyErr
+			return unmarshalErr
+		}
+		container.addElement(keys[idx], dstEl)
+	}
+	return nil
 }
 
-func (cd *Cache) getBytes(ctx context.Context, key string) ([]byte, error) {
-	b, err := cd.opt.Redis.Get(ctx, key).Bytes()
-	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			return nil, ErrCacheMiss
+// @todo
+// 1. optimize it for single key
+// 2. add possibility to ignore redis.Nil errors
+func (cd *Cache) getBytes(ctx context.Context, keys []string) ([][]byte, int, error) {
+	pipeliner := cd.opt.Redis.Pipeline()
+	for _, k := range keys {
+		_ = pipeliner.Get(ctx, k)
+	}
+
+	// errors are handled by keys
+	cmds, _ := pipeliner.Exec(ctx)
+
+	b := make([][]byte, len(keys))
+	var loadedElementsCount int
+
+	keysToErrs := map[string]error{}
+
+	for idx, cmd := range cmds {
+		k := keys[idx]
+		var keyErr error
+		switch {
+		case cmd.Err() == nil:
+			if strCmd, ok := cmd.(*redis.StringCmd); ok {
+				b[idx], keyErr = strCmd.Bytes()
+			} else {
+				keyErr = errors.Errorf("*redis.StringCmd expected for key `%s`, %T received", k, cmd)
+			}
+		case errors.Is(cmd.Err(), redis.Nil):
+			keyErr = ErrCacheMiss
+		default:
+			keyErr = cmd.Err()
+		}
+		if keyErr != nil {
+			keysToErrs[k] = keyErr
+		} else {
+			loadedElementsCount++
 		}
 	}
-	return b, err
+	var byKeysErr error
+	if len(keysToErrs) > 0 {
+		byKeysErr = &KeyErr{keysToErrs: keysToErrs}
+	}
+	return b, loadedElementsCount, byKeysErr
 }
 
 func (cd *Cache) redisTTL(item *Item) time.Duration {
@@ -186,4 +240,12 @@ func (cd *Cache) redisTTL(item *Item) time.Duration {
 		return cd.opt.DefaultTTL
 	}
 	return item.TTL
+}
+
+type KeyErr struct {
+	keysToErrs map[string]error
+}
+
+func (k *KeyErr) Error() string {
+	return fmt.Sprintf("Load keys err: %+v", k.keysToErrs)
 }
