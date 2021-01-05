@@ -102,6 +102,43 @@ func (st *CacheSuite) TestSet_DifferentItems() {
 	}
 }
 
+func (st *CacheSuite) TestGet() {
+	ctx := context.Background()
+
+	keyVals := map[string]interface{}{}
+	var keyValPairs []interface{}
+	var keys []string
+	var vals []string
+	for i := 0; i < 5; i++ {
+		k := faker.RandomString(5)
+		v := faker.Lorem().Sentence(2)
+		keyVals[k] = v
+		keyValPairs = append(keyValPairs, k, v)
+		keys = append(keys, k)
+		vals = append(vals, v)
+	}
+	st.Require().NoError(
+		st.cache.SetKV(ctx, keyValPairs...),
+		"No error expected on setting elements",
+	)
+
+	var dst []string
+	st.Require().NoError(
+		st.cache.Get(ctx, &dst, keys...),
+		"Multi get failed",
+	)
+	st.Require().EqualValues(vals, dst)
+
+	for k, v := range keyVals {
+		var dst string
+		st.Require().NoError(
+			st.cache.Get(ctx, &dst, k),
+			"No error expected on getting key "+k,
+		)
+		st.Require().Equal(v, dst, "Unexpected value for key "+k)
+	}
+}
+
 func TestCacheSuite(t *testing.T) {
 	suite.Run(t, &CacheSuite{})
 }
