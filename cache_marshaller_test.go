@@ -106,5 +106,6 @@ func (st *MarshalUnMarshalSuite) Test_Unmarshal_Struct() {
 }
 
 func TestMarshalUnMarshalSuite(t *testing.T) {
+	t.Parallel()
 	suite.Run(t, &MarshalUnMarshalSuite{})
 }

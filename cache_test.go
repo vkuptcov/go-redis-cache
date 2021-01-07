@@ -105,7 +105,7 @@ func (st *CacheSuite) TestSet_DifferentItems() {
 func (st *CacheSuite) TestGet() {
 	ctx := context.Background()
 
-	keyVals := map[string]interface{}{}
+	keyVals := map[string]string{}
 	var keyValPairs []interface{}
 	var keys []string
 	var vals []string
@@ -122,23 +122,37 @@ func (st *CacheSuite) TestGet() {
 		"No error expected on setting elements",
 	)
 
-	var dst []string
-	st.Require().NoError(
-		st.cache.Get(ctx, &dst, keys...),
-		"Multi get failed",
-	)
-	st.Require().EqualValues(vals, dst)
+	st.Run("get each single key one by one", func() {
+		for k, v := range keyVals {
+			var dst string
+			st.Require().NoError(
+				st.cache.Get(ctx, &dst, k),
+				"No error expected on getting key "+k,
+			)
+			st.Require().Equal(v, dst, "Unexpected value for key "+k)
+		}
+	})
 
-	for k, v := range keyVals {
-		var dst string
+	st.Run("get all keys into a slice", func() {
+		var dst []string
 		st.Require().NoError(
-			st.cache.Get(ctx, &dst, k),
-			"No error expected on getting key "+k,
+			st.cache.Get(ctx, &dst, keys...),
+			"Multi get failed",
 		)
-		st.Require().Equal(v, dst, "Unexpected value for key "+k)
-	}
+		st.Require().EqualValues(vals, dst)
+	})
+
+	st.Run("get all keys into a map", func() {
+		var dst map[string]string
+		st.Require().NoError(
+			st.cache.Get(ctx, &dst, keys...),
+			"Multi get failed",
+		)
+		st.Require().EqualValues(keyVals, dst)
+	})
 }
 
 func TestCacheSuite(t *testing.T) {
+	t.Parallel()
 	suite.Run(t, &CacheSuite{})
 }
