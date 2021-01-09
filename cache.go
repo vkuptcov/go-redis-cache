@@ -189,8 +189,8 @@ func (cd *Cache) get(ctx context.Context, dst interface{}, keys []string) error 
 
 // @todo
 // 1. optimize it for single key
-// 2. add possibility to ignore redis.Nil errors
-func (cd *Cache) getBytes(ctx context.Context, keys []string) ([][]byte, int, error) {
+func (cd *Cache) getBytes(ctx context.Context, keys []string) (b [][]byte, loadedElementsCount int, err error) {
+	includeCacheMissErrors, _ := ctx.Value(includeCacheMissErrsKey).(bool)
 	pipeliner := cd.opt.Redis.Pipeline()
 	for _, k := range keys {
 		_ = pipeliner.Get(ctx, k)
@@ -199,8 +199,7 @@ func (cd *Cache) getBytes(ctx context.Context, keys []string) ([][]byte, int, er
 	// errors are handled by keys
 	cmds, _ := pipeliner.Exec(ctx)
 
-	b := make([][]byte, len(keys))
-	var loadedElementsCount int
+	b = make([][]byte, len(keys))
 
 	keysToErrs := map[string]error{}
 
@@ -215,7 +214,9 @@ func (cd *Cache) getBytes(ctx context.Context, keys []string) ([][]byte, int, er
 				keyErr = errors.Errorf("*redis.StringCmd expected for key `%s`, %T received", k, cmd)
 			}
 		case errors.Is(cmd.Err(), redis.Nil):
-			keyErr = ErrCacheMiss
+			if includeCacheMissErrors {
+				keyErr = ErrCacheMiss
+			}
 		default:
 			keyErr = cmd.Err()
 		}

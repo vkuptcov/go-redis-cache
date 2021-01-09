@@ -15,6 +15,8 @@ type CacheSuite struct {
 	cache  *Cache
 }
 
+const nonExistKey = "non-exist-key"
+
 func (st *CacheSuite) SetupSuite() {
 	st.client = redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
@@ -131,6 +133,20 @@ func (st *CacheSuite) TestGet() {
 			)
 			st.Require().Equal(v, dst, "Unexpected value for key "+k)
 		}
+	})
+
+	st.Run("get non-exists key ignoring cache miss errors", func() {
+		var dst string
+		err := st.cache.Get(ctx, &dst, nonExistKey)
+		st.Require().NoError(err, "No error expected on getting non-exist-key")
+		st.Require().Empty(dst, "Dst should remain unchanged")
+	})
+
+	st.Run("get non-exists key with cache miss errors", func() {
+		var dst string
+		err := st.cache.Get(WithCacheMissErrorsContext(ctx), &dst, nonExistKey)
+		st.Require().Error(err, "An error expected")
+		st.Require().Empty(dst, "Dst should remain unchanged")
 	})
 
 	st.Run("get all keys into a slice", func() {
