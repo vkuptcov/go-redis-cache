@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
@@ -66,4 +67,14 @@ func (cd *Cache) setOne(ctx context.Context, redis rediser, item *Item) error {
 	}
 
 	return redis.Set(ctx, item.Key, b, cd.redisTTL(item)).Err()
+}
+
+func (cd *Cache) redisTTL(item *Item) time.Duration {
+	if item.TTL < 0 {
+		return 0
+	}
+	if item.TTL < time.Second {
+		return cd.opt.DefaultTTL
+	}
+	return item.TTL
 }
