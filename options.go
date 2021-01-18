@@ -23,3 +23,13 @@ func (opt *Options) init() {
 	}
 	opt.DefaultTTL = cacheDuration
 }
+
+func (opt *Options) redisTTL(item *Item) time.Duration {
+	if item.TTL < 0 {
+		return 0
+	}
+	if item.TTL < time.Second {
+		return opt.DefaultTTL
+	}
+	return item.TTL
+}
