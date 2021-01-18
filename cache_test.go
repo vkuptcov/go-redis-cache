@@ -40,7 +40,7 @@ func (st *CacheSuite) TestSet_DifferentItems() {
 		dst      func() interface{}
 	}{
 		{
-			testCase: "set single item",
+			testCase: "setOne single item",
 			items: []*Item{
 				{
 					Key:   faker.RandomString(10),
@@ -52,7 +52,7 @@ func (st *CacheSuite) TestSet_DifferentItems() {
 			},
 		},
 		{
-			testCase: "set several items",
+			testCase: "setOne several items",
 			items: []*Item{
 				{
 					Key:   faker.RandomString(10),
@@ -72,7 +72,7 @@ func (st *CacheSuite) TestSet_DifferentItems() {
 			},
 		},
 		{
-			testCase: "set non-loaded item",
+			testCase: "setOne non-loaded item",
 			items: []*Item{
 				{
 					Key: faker.RandomString(10),

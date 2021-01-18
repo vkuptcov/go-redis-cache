@@ -58,7 +58,7 @@ type Item struct {
 	IfExists bool
 
 	// IfNotExists only sets the key if it does not already exist.
-	// Only one of IfExists/IfNotExists can be set
+	// Only one of IfExists/IfNotExists can be setOne
 	IfNotExists bool
 }
 
@@ -97,41 +97,11 @@ func (cd *Cache) Unmarshal(data []byte, dst interface{}) error {
 
 // Set sets multiple elements
 func (cd *Cache) Set(ctx context.Context, items ...*Item) (err error) {
-	r := cd.opt.Redis
-	var pipeliner redis.Pipeliner
-	if len(items) > 1 && r != nil {
-		pipeliner = cd.opt.Redis.Pipeline()
-		r = pipeliner
-	}
-	for _, item := range items {
-		err = cd.set(ctx, r, item)
-		if err != nil {
-			return err
-		}
-	}
-	if pipeliner != nil {
-		_, err = pipeliner.Exec(ctx)
-	}
-	return err
+	return cd.setMulti(ctx, items...)
 }
 
 func (cd *Cache) SetKV(ctx context.Context, keyValPairs ...interface{}) (err error) {
-	if len(keyValPairs)%2 != 0 {
-		return errors.New("key-values pairs must be provided")
-	}
-	items := make([]*Item, len(keyValPairs)/2)
-	for id := 0; id < len(keyValPairs); id += 2 {
-		key, ok := keyValPairs[id].(string)
-		if !ok {
-			return errors.Errorf("string key expected for position %d, `%#+v` of type %T given", id, keyValPairs[id], keyValPairs[id])
-		}
-		items[id/2] = &Item{
-			Key:   key,
-			Value: keyValPairs[id+1],
-			TTL:   cd.opt.DefaultTTL,
-		}
-	}
-	return cd.Set(ctx, items...)
+	return cd.setKV(ctx, keyValPairs...)
 }
 
 // Get gets the value for the given keys
@@ -153,28 +123,6 @@ func (cd *Cache) GetOrLoad(ctx context.Context, dst interface{}, loadFn func(abs
 		}
 	}
 	return loadErr
-}
-
-func (cd *Cache) set(ctx context.Context, redis rediser, item *Item) error {
-	value, loadValErr := item.value()
-	if loadValErr != nil {
-		return loadValErr
-	}
-
-	b, marshalErr := cd.Marshal(value)
-	if marshalErr != nil {
-		return marshalErr
-	}
-
-	if item.IfExists {
-		return redis.SetXX(ctx, item.Key, b, cd.redisTTL(item)).Err()
-	}
-
-	if item.IfNotExists {
-		return redis.SetNX(ctx, item.Key, b, cd.redisTTL(item)).Err()
-	}
-
-	return redis.Set(ctx, item.Key, b, cd.redisTTL(item)).Err()
 }
 
 func (cd *Cache) get(ctx context.Context, dst interface{}, keys []string) error {
