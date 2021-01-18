@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/pkg/errors"
@@ -134,9 +135,25 @@ func (cd *Cache) SetKV(ctx context.Context, keyValPairs ...interface{}) (err err
 	return cd.Set(ctx, items...)
 }
 
-// Get gets the value for the given key.
+// Get gets the value for the given keys
 func (cd *Cache) Get(ctx context.Context, dst interface{}, keys ...string) error {
 	return cd.get(ctx, dst, keys)
+}
+
+func (cd *Cache) GetOrLoad(ctx context.Context, dst interface{}, loadFn func(absentKeys ...string) (interface{}, error), keys ...string) error {
+	ctx = WithCacheMissErrorsContext(ctx)
+	loadErr := cd.Get(ctx, dst, keys...)
+	if loadErr != nil {
+		var byKeyLoadErr *KeyErr
+		if errors.As(loadErr, &byKeyLoadErr) && !byKeyLoadErr.HasNonCacheMissErrs() {
+			absentKeys := make([]string, 0, byKeyLoadErr.cacheMissErrsCount)
+			for k := range byKeyLoadErr.keysToErrs {
+				absentKeys = append(absentKeys, k)
+			}
+			return cd.addAbsentKeys(ctx, dst, loadFn, absentKeys)
+		}
+	}
+	return loadErr
 }
 
 func (cd *Cache) set(ctx context.Context, redis rediser, item *Item) error {
@@ -187,8 +204,7 @@ func (cd *Cache) get(ctx context.Context, dst interface{}, keys []string) error 
 	return nil
 }
 
-// @todo
-// 1. optimize it for single key
+// @todo optimize it for single key
 func (cd *Cache) getBytes(ctx context.Context, keys []string) (b [][]byte, loadedElementsCount int, err error) {
 	includeCacheMissErrors, _ := ctx.Value(includeCacheMissErrsKey).(bool)
 	pipeliner := cd.opt.Redis.Pipeline()
@@ -202,6 +218,7 @@ func (cd *Cache) getBytes(ctx context.Context, keys []string) (b [][]byte, loade
 	b = make([][]byte, len(keys))
 
 	keysToErrs := map[string]error{}
+	var cacheMissErrsCount int
 
 	for idx, cmd := range cmds {
 		k := keys[idx]
@@ -216,6 +233,7 @@ func (cd *Cache) getBytes(ctx context.Context, keys []string) (b [][]byte, loade
 		case errors.Is(cmd.Err(), redis.Nil):
 			if includeCacheMissErrors {
 				keyErr = ErrCacheMiss
+				cacheMissErrsCount++
 			}
 		default:
 			keyErr = cmd.Err()
@@ -228,9 +246,56 @@ func (cd *Cache) getBytes(ctx context.Context, keys []string) (b [][]byte, loade
 	}
 	var byKeysErr error
 	if len(keysToErrs) > 0 {
-		byKeysErr = &KeyErr{keysToErrs: keysToErrs}
+		byKeysErr = &KeyErr{
+			keysToErrs:         keysToErrs,
+			cacheMissErrsCount: cacheMissErrsCount,
+		}
 	}
 	return b, loadedElementsCount, byKeysErr
+}
+
+func (cd *Cache) addAbsentKeys(ctx context.Context, dst interface{}, loadFn func(absentKeys ...string) (interface{}, error), absentKeys []string) error {
+	data, loadErr := loadFn(absentKeys...)
+	if loadErr != nil {
+		return loadErr
+	}
+	v := reflect.ValueOf(data)
+	switch kind := v.Kind(); kind {
+	case reflect.Map:
+		if v.Len() == 0 {
+			return nil
+		}
+		mapType := v.Type()
+		keyType := mapType.Key()
+		if keyType.Kind() != reflect.String {
+			return errors.Errorf("dst key type must be a string, %v given", keyType.Kind())
+		}
+		container, containerInitErr := newContainer(dst)
+		if containerInitErr != nil {
+			return containerInitErr
+		}
+		iter := v.MapRange()
+		items := make([]*Item, 0, v.Len())
+		for iter.Next() {
+			val := iter.Value().Interface()
+			var key string
+			if item, ok := val.(*Item); ok {
+				items = append(items, item)
+				// @todo add possibility to use the key from the map
+				key = item.Key
+			} else {
+				key = iter.Key().String()
+				items = append(items, &Item{
+					Key:   key,
+					Value: val,
+				})
+			}
+			container.addElement(key, val)
+		}
+		return cd.Set(ctx, items...)
+	default:
+		return errors.Errorf("Unsupported kind %q", kind)
+	}
 }
 
 func (cd *Cache) redisTTL(item *Item) time.Duration {
@@ -244,7 +309,12 @@ func (cd *Cache) redisTTL(item *Item) time.Duration {
 }
 
 type KeyErr struct {
-	keysToErrs map[string]error
+	keysToErrs         map[string]error
+	cacheMissErrsCount int
+}
+
+func (k *KeyErr) HasNonCacheMissErrs() bool {
+	return len(k.keysToErrs) != k.cacheMissErrsCount
 }
 
 func (k *KeyErr) Error() string {
