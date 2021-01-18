@@ -6,6 +6,8 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
+
+	"github.com/vkuptcov/go-redis-cache/v8/internal"
 )
 
 func (cd *Cache) setKV(ctx context.Context, keyValPairs ...interface{}) (err error) {
@@ -47,7 +49,7 @@ func (cd *Cache) setMulti(ctx context.Context, items ...*Item) (err error) {
 	return err
 }
 
-func (cd *Cache) setOne(ctx context.Context, redis rediser, item *Item) error {
+func (cd *Cache) setOne(ctx context.Context, redis internal.Rediser, item *Item) error {
 	value, loadValErr := item.value()
 	if loadValErr != nil {
 		return loadValErr

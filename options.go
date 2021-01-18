@@ -2,10 +2,12 @@ package cache
 
 import (
 	"time"
+
+	"github.com/vkuptcov/go-redis-cache/v8/internal"
 )
 
 type Options struct {
-	Redis rediser
+	Redis internal.Rediser
 
 	// DefaultTTL is the cache expiration time.
 	// 1 hour by default
