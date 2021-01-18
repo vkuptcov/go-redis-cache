@@ -9,6 +9,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/go-redis/redis/v8"
+
+	"github.com/vkuptcov/go-redis-cache/v8/internal/containers"
 )
 
 var ErrCacheMiss = errors.New("cache: key is missing")
@@ -187,19 +189,19 @@ func (cd *Cache) get(ctx context.Context, dst interface{}, keys []string) error 
 		}
 		return cd.Unmarshal(loadedBytes[0], dst)
 	}
-	container, containerErr := newContainer(dst)
+	container, containerErr := containers.NewContainer(dst)
 	if containerErr != nil {
 		return containerErr
 	}
-	container.initWithSize(loadedElementsCount)
+	container.InitWithSize(loadedElementsCount)
 	for idx, b := range loadedBytes {
-		dstEl := container.dstEl()
+		dstEl := container.DstEl()
 		unmarshalErr := cd.Unmarshal(b, dstEl)
 		if unmarshalErr != nil {
 			// @todo init and add KeyErr
 			return unmarshalErr
 		}
-		container.addElement(keys[idx], dstEl)
+		container.AddElement(keys[idx], dstEl)
 	}
 	return nil
 }
@@ -270,7 +272,7 @@ func (cd *Cache) addAbsentKeys(ctx context.Context, dst interface{}, loadFn func
 		if keyType.Kind() != reflect.String {
 			return errors.Errorf("dst key type must be a string, %v given", keyType.Kind())
 		}
-		container, containerInitErr := newContainer(dst)
+		container, containerInitErr := containers.NewContainer(dst)
 		if containerInitErr != nil {
 			return containerInitErr
 		}
@@ -290,7 +292,7 @@ func (cd *Cache) addAbsentKeys(ctx context.Context, dst interface{}, loadFn func
 					Value: val,
 				})
 			}
-			container.addElement(key, val)
+			container.AddElement(key, val)
 		}
 		return cd.Set(ctx, items...)
 	default:

@@ -1,4 +1,4 @@
-package cache
+package containers
 
 import (
 	"reflect"
@@ -7,9 +7,9 @@ import (
 )
 
 type containerInt interface {
-	dstEl() interface{}
-	addElement(key string, value interface{})
-	initWithSize(size int)
+	DstEl() interface{}
+	AddElement(key string, value interface{})
+	InitWithSize(size int)
 }
 
 type baseContainer struct {
@@ -19,7 +19,7 @@ type baseContainer struct {
 	isElementAPointer bool
 }
 
-func (b baseContainer) dstEl() interface{} {
+func (b baseContainer) DstEl() interface{} {
 	elementValue := reflect.New(b.elementType)
 	return elementValue.Interface()
 }
@@ -36,11 +36,11 @@ type mapContainer struct {
 	*baseContainer
 }
 
-func (m mapContainer) addElement(key string, value interface{}) {
+func (m mapContainer) AddElement(key string, value interface{}) {
 	m.cntValue.SetMapIndex(reflect.ValueOf(key), m.dstElementToValue(value))
 }
 
-func (m mapContainer) initWithSize(size int) {
+func (m mapContainer) InitWithSize(size int) {
 	if m.cntValue.IsNil() {
 		m.cntValue.Set(reflect.MakeMapWithSize(m.cntType, size))
 	}
@@ -50,17 +50,17 @@ type sliceContainer struct {
 	*baseContainer
 }
 
-func (s sliceContainer) addElement(_ string, value interface{}) {
+func (s sliceContainer) AddElement(_ string, value interface{}) {
 	s.cntValue.Set(reflect.Append(s.cntValue, s.dstElementToValue(value)))
 }
 
-func (s sliceContainer) initWithSize(size int) {
+func (s sliceContainer) InitWithSize(size int) {
 	if s.cntValue.IsNil() {
 		s.cntValue.Set(reflect.MakeSlice(s.cntType, 0, size))
 	}
 }
 
-func newContainer(dst interface{}) (containerInt, error) {
+func NewContainer(dst interface{}) (containerInt, error) {
 	reflectValue := reflect.ValueOf(dst)
 	if reflectValue.Kind() == reflect.Ptr {
 		// get the dst that the pointer reflectValue points to.
