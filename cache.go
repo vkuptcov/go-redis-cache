@@ -2,7 +2,6 @@ package cache
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"time"
 
@@ -12,8 +11,6 @@ import (
 
 	"github.com/vkuptcov/go-redis-cache/v8/internal/containers"
 )
-
-var ErrCacheMiss = errors.New("cache: key is missing")
 
 type rediser interface {
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
@@ -308,17 +305,4 @@ func (cd *Cache) redisTTL(item *Item) time.Duration {
 		return cd.opt.DefaultTTL
 	}
 	return item.TTL
-}
-
-type KeyErr struct {
-	keysToErrs         map[string]error
-	cacheMissErrsCount int
-}
-
-func (k *KeyErr) HasNonCacheMissErrs() bool {
-	return len(k.keysToErrs) != k.cacheMissErrsCount
-}
-
-func (k *KeyErr) Error() string {
-	return fmt.Sprintf("Load keys err: %+v", k.keysToErrs)
 }
