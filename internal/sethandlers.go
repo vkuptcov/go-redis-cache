@@ -1,15 +1,13 @@
-package cache
+package internal
 
 import (
 	"context"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
-
-	"github.com/vkuptcov/go-redis-cache/v8/internal"
 )
 
-func (cd *Cache) setKV(ctx context.Context, keyValPairs ...interface{}) (err error) {
+func SetKV(ctx context.Context, opts *Options, keyValPairs ...interface{}) (err error) {
 	if len(keyValPairs)%2 != 0 {
 		return errors.New("key-values pairs must be provided")
 	}
@@ -22,22 +20,21 @@ func (cd *Cache) setKV(ctx context.Context, keyValPairs ...interface{}) (err err
 		items[id/2] = &Item{
 			Key:   key,
 			Value: keyValPairs[id+1],
-			TTL:   cd.opt.DefaultTTL,
+			TTL:   opts.DefaultTTL,
 		}
 	}
-	return cd.Set(ctx, items...)
+	return SetMulti(ctx, opts, items...)
 }
 
-// Set sets multiple elements
-func (cd *Cache) setMulti(ctx context.Context, items ...*Item) (err error) {
-	r := cd.opt.Redis
+func SetMulti(ctx context.Context, opts *Options, items ...*Item) (err error) {
+	r := opts.Redis
 	var pipeliner redis.Pipeliner
 	if len(items) > 1 && r != nil {
-		pipeliner = cd.opt.Redis.Pipeline()
+		pipeliner = opts.Redis.Pipeline()
 		r = pipeliner
 	}
 	for _, item := range items {
-		err = cd.setOne(ctx, r, item)
+		err = setOne(ctx, opts, r, item)
 		if err != nil {
 			return err
 		}
@@ -48,13 +45,13 @@ func (cd *Cache) setMulti(ctx context.Context, items ...*Item) (err error) {
 	return err
 }
 
-func (cd *Cache) setOne(ctx context.Context, redis internal.Rediser, item *Item) error {
-	b, marshalErr := cd.Marshal(item.Value)
+func setOne(ctx context.Context, opts *Options, redis Rediser, item *Item) error {
+	b, marshalErr := opts.Marshaller.Marshal(item.Value)
 	if marshalErr != nil {
 		return marshalErr
 	}
 
-	ttl := cd.opt.redisTTL(item)
+	ttl := opts.redisTTL(item)
 
 	if item.IfExists {
 		return redis.SetXX(ctx, item.Key, b, ttl).Err()
