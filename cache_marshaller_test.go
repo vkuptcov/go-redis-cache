@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
+
+	"github.com/vkuptcov/go-redis-cache/v8/internal"
 )
 
 type testJSONMarshaller struct{}
@@ -17,7 +19,7 @@ func (t *testJSONMarshaller) Unmarshal(data []byte, dst interface{}) error {
 	return json.Unmarshal(data, dst)
 }
 
-var _ Marshaller = &testJSONMarshaller{}
+var _ internal.Marshaller = &testJSONMarshaller{}
 
 type structureToSerialize struct {
 	Field string

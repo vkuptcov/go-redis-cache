@@ -2,13 +2,15 @@ package cache
 
 import (
 	"context"
+
+	"github.com/vkuptcov/go-redis-cache/v8/internal"
 )
 
 type Cache struct {
 	opt *Options
 }
 
-var _ Marshaller = &Cache{}
+var _ internal.Marshaller = &Cache{}
 
 func NewCache(opt *Options) *Cache {
 	opt.init()

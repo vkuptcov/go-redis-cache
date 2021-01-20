@@ -2,15 +2,12 @@ package cache
 
 import (
 	"reflect"
+
+	"github.com/vkuptcov/go-redis-cache/v8/internal"
 )
 
-type Marshaller interface {
-	Marshal(value interface{}) ([]byte, error)
-	Unmarshal(data []byte, dst interface{}) error
-}
-
 type baseMarshaller struct {
-	customMarshaller Marshaller
+	customMarshaller internal.Marshaller
 }
 
 // @todo implement int* default marshaller

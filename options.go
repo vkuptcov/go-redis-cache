@@ -13,7 +13,7 @@ type Options struct {
 	// 1 hour by default
 	DefaultTTL time.Duration
 
-	Marshaller Marshaller
+	Marshaller internal.Marshaller
 }
 
 func (opt *Options) init() {
