@@ -71,20 +71,6 @@ func (st *CacheSuite) TestSet_DifferentItems() {
 				return ""
 			},
 		},
-		{
-			testCase: "setOne non-loaded item",
-			items: []*Item{
-				{
-					Key: faker.RandomString(10),
-					Load: func(item *Item) (interface{}, error) {
-						return faker.Lorem().Sentence(5), nil
-					},
-				},
-			},
-			dst: func() interface{} {
-				return ""
-			},
-		},
 	}
 	for _, td := range testData {
 		st.Run(td.testCase, func() {

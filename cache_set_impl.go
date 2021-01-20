@@ -49,12 +49,7 @@ func (cd *Cache) setMulti(ctx context.Context, items ...*Item) (err error) {
 }
 
 func (cd *Cache) setOne(ctx context.Context, redis internal.Rediser, item *Item) error {
-	value, loadValErr := item.value()
-	if loadValErr != nil {
-		return loadValErr
-	}
-
-	b, marshalErr := cd.Marshal(value)
+	b, marshalErr := cd.Marshal(item.Value)
 	if marshalErr != nil {
 		return marshalErr
 	}
