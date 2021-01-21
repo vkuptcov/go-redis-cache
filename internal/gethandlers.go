@@ -1,4 +1,4 @@
-package cache
+package internal
 
 import (
 	"context"
@@ -10,14 +10,14 @@ import (
 	"github.com/vkuptcov/go-redis-cache/v8/internal/containers"
 )
 
-func (cd *Cache) get(ctx context.Context, dst interface{}, keys []string) error {
-	loadedBytes, loadedElementsCount, loadErr := cd.getBytes(ctx, keys)
+func Get(ctx context.Context, opts *Options, dst interface{}, keys []string) error {
+	loadedBytes, loadedElementsCount, loadErr := GetBytes(ctx, opts, keys)
 
 	if len(keys) == 1 {
 		if loadErr != nil {
 			return loadErr
 		}
-		return cd.Unmarshal(loadedBytes[0], dst)
+		return opts.Marshaller.Unmarshal(loadedBytes[0], dst)
 	}
 	container, containerErr := containers.NewContainer(dst)
 	if containerErr != nil {
@@ -26,7 +26,7 @@ func (cd *Cache) get(ctx context.Context, dst interface{}, keys []string) error 
 	container.InitWithSize(loadedElementsCount)
 	for idx, b := range loadedBytes {
 		dstEl := container.DstEl()
-		unmarshalErr := cd.Unmarshal(b, dstEl)
+		unmarshalErr := opts.Marshaller.Unmarshal(b, dstEl)
 		if unmarshalErr != nil {
 			// @todo init and add KeyErr
 			return unmarshalErr
@@ -36,26 +36,26 @@ func (cd *Cache) get(ctx context.Context, dst interface{}, keys []string) error 
 	return nil
 }
 
-func (cd *Cache) getOrLoad(ctx context.Context, dst interface{}, loadFn func(absentKeys ...string) (interface{}, error), keys ...string) error {
+func GetOrLoad(ctx context.Context, opts *Options, dst interface{}, loadFn func(absentKeys ...string) (interface{}, error), keys ...string) error {
 	ctx = WithCacheMissErrorsContext(ctx)
-	loadErr := cd.Get(ctx, dst, keys...)
+	loadErr := Get(ctx, opts, dst, keys)
 	if loadErr != nil {
 		var byKeyLoadErr *KeyErr
 		if errors.As(loadErr, &byKeyLoadErr) && !byKeyLoadErr.HasNonCacheMissErrs() {
-			absentKeys := make([]string, 0, byKeyLoadErr.cacheMissErrsCount)
-			for k := range byKeyLoadErr.keysToErrs {
+			absentKeys := make([]string, 0, byKeyLoadErr.CacheMissErrsCount)
+			for k := range byKeyLoadErr.KeysToErrs {
 				absentKeys = append(absentKeys, k)
 			}
-			return cd.addAbsentKeys(ctx, dst, loadFn, absentKeys)
+			return addAbsentKeys(ctx, opts, dst, loadFn, absentKeys)
 		}
 	}
 	return loadErr
 }
 
 // @todo optimize it for single key
-func (cd *Cache) getBytes(ctx context.Context, keys []string) (b [][]byte, loadedElementsCount int, err error) {
-	includeCacheMissErrors, _ := ctx.Value(includeCacheMissErrsKey).(bool)
-	pipeliner := cd.opt.Redis.Pipeline()
+func GetBytes(ctx context.Context, opts *Options, keys []string) (b [][]byte, loadedElementsCount int, err error) {
+	includeCacheMissErrors, _ := ctx.Value(IncludeCacheMissErrsKey).(bool)
+	pipeliner := opts.Redis.Pipeline()
 	for _, k := range keys {
 		_ = pipeliner.Get(ctx, k)
 	}
@@ -95,14 +95,14 @@ func (cd *Cache) getBytes(ctx context.Context, keys []string) (b [][]byte, loade
 	var byKeysErr error
 	if len(keysToErrs) > 0 {
 		byKeysErr = &KeyErr{
-			keysToErrs:         keysToErrs,
-			cacheMissErrsCount: cacheMissErrsCount,
+			KeysToErrs:         keysToErrs,
+			CacheMissErrsCount: cacheMissErrsCount,
 		}
 	}
 	return b, loadedElementsCount, byKeysErr
 }
 
-func (cd *Cache) addAbsentKeys(ctx context.Context, dst interface{}, loadFn func(absentKeys ...string) (interface{}, error), absentKeys []string) error {
+func addAbsentKeys(ctx context.Context, opts *Options, dst interface{}, loadFn func(absentKeys ...string) (interface{}, error), absentKeys []string) error {
 	data, loadErr := loadFn(absentKeys...)
 	if loadErr != nil {
 		return loadErr
@@ -140,7 +140,7 @@ func (cd *Cache) addAbsentKeys(ctx context.Context, dst interface{}, loadFn func
 			}
 			container.AddElement(key, val)
 		}
-		return cd.Set(ctx, items...)
+		return SetMulti(ctx, opts, items...)
 	default:
 		return errors.Errorf("Unsupported kind %q", kind)
 	}

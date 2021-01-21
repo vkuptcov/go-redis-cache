@@ -1,11 +1,11 @@
 package cache
 
-import "context"
+import (
+	"context"
 
-type cacheContextKey int
-
-const includeCacheMissErrsKey cacheContextKey = iota
+	"github.com/vkuptcov/go-redis-cache/v8/internal"
+)
 
 func WithCacheMissErrorsContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, includeCacheMissErrsKey, true)
+	return internal.WithCacheMissErrorsContext(ctx)
 }

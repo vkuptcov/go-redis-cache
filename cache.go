@@ -40,9 +40,9 @@ func (cd *Cache) SetKV(ctx context.Context, keyValPairs ...interface{}) (err err
 
 // Get gets the value for the given keys
 func (cd *Cache) Get(ctx context.Context, dst interface{}, keys ...string) error {
-	return cd.get(ctx, dst, keys)
+	return internal.Get(ctx, (*internal.Options)(cd.opt), dst, keys)
 }
 
 func (cd *Cache) GetOrLoad(ctx context.Context, dst interface{}, loadFn func(absentKeys ...string) (interface{}, error), keys ...string) error {
-	return cd.getOrLoad(ctx, dst, loadFn, keys...)
+	return internal.GetOrLoad(ctx, (*internal.Options)(cd.opt), dst, loadFn, keys...)
 }
