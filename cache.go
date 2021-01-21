@@ -11,21 +11,11 @@ type Cache struct {
 	opt *Options
 }
 
-var _ internal.Marshaller = &Cache{}
-
 func NewCache(opt *Options) *Cache {
 	opt.init()
 	return &Cache{
 		opt: opt,
 	}
-}
-
-func (cd *Cache) Marshal(value interface{}) ([]byte, error) {
-	return cd.opt.Marshaller.Marshal(value)
-}
-
-func (cd *Cache) Unmarshal(data []byte, dst interface{}) error {
-	return cd.opt.Marshaller.Unmarshal(data, dst)
 }
 
 // Set sets multiple elements
