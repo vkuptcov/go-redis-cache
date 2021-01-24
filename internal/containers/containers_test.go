@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/suite"
 	"syreclabs.com/go/faker"
 )
@@ -39,6 +40,11 @@ func (st *ContainersSuite) TestContainerCreation() {
 		c, err := NewContainer(&dst)
 		st.Require().NoError(err, "No error expected on container creation")
 		st.Require().IsType(st.expectedMapContainer, c)
+	})
+	st.Run("create a container for non-slice or map must fail", func() {
+		var dst string
+		_, err := NewContainer(&dst)
+		st.Require().True(errors.Is(err, ErrNonContainerType), "ErrNonContainerType expected, %+v given", err)
 	})
 }
 

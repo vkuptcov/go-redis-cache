@@ -40,7 +40,7 @@ func (st *CacheSuite) TestSet_DifferentItems() {
 		dst      func() interface{}
 	}{
 		{
-			testCase: "setOne single item",
+			testCase: "set single item",
 			items: []*Item{
 				{
 					Key:   faker.RandomString(10),
@@ -52,7 +52,7 @@ func (st *CacheSuite) TestSet_DifferentItems() {
 			},
 		},
 		{
-			testCase: "setOne several items",
+			testCase: "set several items",
 			items: []*Item{
 				{
 					Key:   faker.RandomString(10),
@@ -144,6 +144,15 @@ func (st *CacheSuite) TestGet() {
 		st.Require().EqualValues(vals, dst)
 	})
 
+	st.Run("get single key into a slice", func() {
+		var dst []string
+		st.Require().NoError(
+			st.cache.Get(ctx, &dst, keys[0]),
+			"Multi get failed",
+		)
+		st.Require().EqualValues(vals[0:1], dst)
+	})
+
 	st.Run("get all keys into a map", func() {
 		var dst map[string]string
 		st.Require().NoError(
@@ -151,6 +160,15 @@ func (st *CacheSuite) TestGet() {
 			"Multi get failed",
 		)
 		st.Require().EqualValues(keyVals, dst)
+	})
+
+	st.Run("get single key into a map", func() {
+		var dst map[string]string
+		st.Require().NoError(
+			st.cache.Get(ctx, &dst, keys[0]),
+			"Multi get failed",
+		)
+		st.Require().EqualValues(map[string]string{keys[0]: vals[0]}, dst)
 	})
 }
 

@@ -6,6 +6,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+var (
+	ErrNonContainerType = errors.New("dst must be a map or a slice")
+)
+
 type containerInt interface {
 	DstEl() interface{}
 	AddElement(key string, value interface{})
@@ -85,7 +89,7 @@ func NewContainer(dst interface{}) (containerInt, error) {
 		base.cntType = reflectValue.Type()
 		result = sliceContainer{baseContainer: base}
 	default:
-		return nil, errors.Errorf("dst must be a map or a slice instead of %v", reflectValue.Type())
+		return nil, errors.Wrapf(ErrNonContainerType, "dst must be a map or a slice instead of %v", reflectValue.Type())
 	}
 	base.elementType = base.cntType.Elem()
 	if base.elementType.Kind() == reflect.Ptr {

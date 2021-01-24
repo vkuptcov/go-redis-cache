@@ -12,17 +12,18 @@ import (
 
 func Get(ctx context.Context, opts *Options, dst interface{}, keys []string) error {
 	loadedBytes, loadedElementsCount, loadErr := GetBytes(ctx, opts, keys)
-
-	if len(keys) == 1 {
-		if loadErr != nil {
-			return loadErr
-		}
-		return opts.Marshaller.Unmarshal(loadedBytes[0], dst)
+	if loadErr != nil {
+		return loadErr
 	}
+
 	container, containerErr := containers.NewContainer(dst)
-	if containerErr != nil {
+
+	if errors.Is(containerErr, containers.ErrNonContainerType) {
+		return opts.Marshaller.Unmarshal(loadedBytes[0], dst)
+	} else if containerErr != nil {
 		return containerErr
 	}
+
 	container.InitWithSize(loadedElementsCount)
 	for idx, b := range loadedBytes {
 		dstEl := container.DstEl()
