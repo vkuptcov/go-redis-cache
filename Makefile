@@ -6,4 +6,8 @@ lint:
 
 test:
 	@$(GO) clean -testcache
-	$(GO) test -mod=mod -parallel 4 .
+	$(GO) test -mod=mod -parallel 4 ./... -coverprofile coverage.out
+
+
+test-coverage-report: test
+	echo "Test coverage:" && $(GO) tool cover -func coverage.out
