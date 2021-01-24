@@ -11,7 +11,7 @@ import (
 )
 
 func Get(ctx context.Context, opts *Options, dst interface{}, keys []string) error {
-	loadedBytes, loadedElementsCount, loadErr := GetBytes(ctx, opts, keys)
+	loadedBytes, loadedElementsCount, loadErr := getBytes(ctx, opts, keys)
 	if loadErr != nil {
 		return loadErr
 	}
@@ -54,7 +54,7 @@ func GetOrLoad(ctx context.Context, opts *Options, dst interface{}, loadFn func(
 }
 
 // @todo optimize it for single key
-func GetBytes(ctx context.Context, opts *Options, keys []string) (b [][]byte, loadedElementsCount int, err error) {
+func getBytes(ctx context.Context, opts *Options, keys []string) (b [][]byte, loadedElementsCount int, err error) {
 	includeCacheMissErrors, _ := ctx.Value(IncludeCacheMissErrsKey).(bool)
 	pipeliner := opts.Redis.Pipeline()
 	for _, k := range keys {

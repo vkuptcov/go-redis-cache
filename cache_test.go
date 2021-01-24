@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/suite"
 	"syreclabs.com/go/faker"
 
@@ -170,6 +171,31 @@ func (st *CacheSuite) TestGet() {
 		)
 		st.Require().EqualValues(map[string]string{keys[0]: vals[0]}, dst)
 	})
+}
+
+func (st *CacheSuite) TestGetOrLoad() {
+	dst := map[string]string{}
+	keys := []string{faker.RandomString(5), faker.RandomString(5), faker.RandomString(5)}
+	mapFromKeys := func(keys ...string) map[string]string {
+		m := map[string]string{}
+		for _, k := range keys {
+			m[k] = k + "-loaded-val"
+		}
+		return m
+	}
+	getErr := st.cache.GetOrLoad(
+		context.Background(),
+		&dst,
+		func(absentKeys ...string) (interface{}, error) {
+			m := mapFromKeys(absentKeys...)
+			return m, nil
+		},
+		keys...,
+	)
+	expectedMap := mapFromKeys(keys...)
+
+	st.Require().NoError(getErr, "No error expected on loading keys from cache")
+	st.Require().Empty(cmp.Diff(expectedMap, dst), "", "maps should be identical")
 }
 
 func TestCacheSuite(t *testing.T) {

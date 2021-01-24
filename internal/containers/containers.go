@@ -31,7 +31,7 @@ func (b baseContainer) DstEl() interface{} {
 func (b baseContainer) dstElementToValue(dstEl interface{}) reflect.Value {
 	val := reflect.ValueOf(dstEl)
 	if !b.isElementAPointer {
-		val = val.Elem()
+		val = reflect.Indirect(val)
 	}
 	return val
 }
