@@ -1,4 +1,4 @@
-package cache
+package marshaller
 
 import (
 	"reflect"
@@ -8,6 +8,10 @@ import (
 
 type baseMarshaller struct {
 	customMarshaller internal.Marshaller
+}
+
+func NewMarshaller(customMarshaller internal.Marshaller) internal.Marshaller {
+	return &baseMarshaller{customMarshaller: customMarshaller}
 }
 
 // @todo implement int* default marshaller

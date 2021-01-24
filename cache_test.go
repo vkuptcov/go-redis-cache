@@ -7,6 +7,8 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/suite"
 	"syreclabs.com/go/faker"
+
+	"github.com/vkuptcov/go-redis-cache/v8/internal/marshaller"
 )
 
 type CacheSuite struct {
@@ -25,9 +27,7 @@ func (st *CacheSuite) SetupSuite() {
 	st.cache = &Cache{opt: &Options{
 		Redis:      st.client,
 		DefaultTTL: 0,
-		Marshaller: &baseMarshaller{
-			customMarshaller: &testJSONMarshaller{},
-		},
+		Marshaller: marshaller.NewMarshaller(&marshaller.JSONMarshaller{}),
 	}}
 }
 

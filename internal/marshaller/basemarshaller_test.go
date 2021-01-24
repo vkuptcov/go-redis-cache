@@ -1,25 +1,10 @@
-package cache
+package marshaller
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
-
-	"github.com/vkuptcov/go-redis-cache/v8/internal"
 )
-
-type testJSONMarshaller struct{}
-
-func (t *testJSONMarshaller) Marshal(val interface{}) ([]byte, error) {
-	return json.Marshal(val)
-}
-
-func (t *testJSONMarshaller) Unmarshal(data []byte, dst interface{}) error {
-	return json.Unmarshal(data, dst)
-}
-
-var _ internal.Marshaller = &testJSONMarshaller{}
 
 type structureToSerialize struct {
 	Field string
@@ -32,7 +17,7 @@ type MarshalUnMarshalSuite struct {
 
 func (st *MarshalUnMarshalSuite) SetupSuite() {
 	st.marshaller = &baseMarshaller{
-		customMarshaller: &testJSONMarshaller{},
+		customMarshaller: &JSONMarshaller{},
 	}
 }
 
