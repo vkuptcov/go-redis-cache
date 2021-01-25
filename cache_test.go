@@ -14,8 +14,16 @@ import (
 
 type CacheSuite struct {
 	suite.Suite
-	client *redis.Client
-	cache  *Cache
+	client         *redis.Client
+	cache          *Cache
+	commonTestData commonTestData
+}
+
+type commonTestData struct {
+	keyVals     map[string]string
+	keyValPairs []interface{}
+	keys        []string
+	vals        []string
 }
 
 const nonExistKey = "non-exist-key"
@@ -30,6 +38,27 @@ func (st *CacheSuite) SetupSuite() {
 		DefaultTTL: 0,
 		Marshaller: marshaller.NewMarshaller(&marshaller.JSONMarshaller{}),
 	}}
+}
+
+func (st *CacheSuite) SetupTest() {
+	keyVals := map[string]string{}
+	var keyValPairs []interface{}
+	var keys []string
+	var vals []string
+	for i := 0; i < 5; i++ {
+		k := faker.RandomString(5)
+		v := faker.Lorem().Sentence(2)
+		keyVals[k] = v
+		keyValPairs = append(keyValPairs, k, v)
+		keys = append(keys, k)
+		vals = append(vals, v)
+	}
+	st.commonTestData = commonTestData{
+		keyVals:     keyVals,
+		keyValPairs: keyValPairs,
+		keys:        keys,
+		vals:        vals,
+	}
 }
 
 func (st *CacheSuite) TestSet_DifferentItems() {
@@ -94,25 +123,13 @@ func (st *CacheSuite) TestSet_DifferentItems() {
 func (st *CacheSuite) TestGet() {
 	ctx := context.Background()
 
-	keyVals := map[string]string{}
-	var keyValPairs []interface{}
-	var keys []string
-	var vals []string
-	for i := 0; i < 5; i++ {
-		k := faker.RandomString(5)
-		v := faker.Lorem().Sentence(2)
-		keyVals[k] = v
-		keyValPairs = append(keyValPairs, k, v)
-		keys = append(keys, k)
-		vals = append(vals, v)
-	}
 	st.Require().NoError(
-		st.cache.SetKV(ctx, keyValPairs...),
+		st.cache.SetKV(ctx, st.commonTestData.keyValPairs...),
 		"No error expected on setting elements",
 	)
 
 	st.Run("get each single key one by one", func() {
-		for k, v := range keyVals {
+		for k, v := range st.commonTestData.keyVals {
 			var dst string
 			st.Require().NoError(
 				st.cache.Get(ctx, &dst, k),
@@ -139,63 +156,66 @@ func (st *CacheSuite) TestGet() {
 	st.Run("get all keys into a slice", func() {
 		var dst []string
 		st.Require().NoError(
-			st.cache.Get(ctx, &dst, keys...),
+			st.cache.Get(ctx, &dst, st.commonTestData.keys...),
 			"Multi get failed",
 		)
-		st.Require().EqualValues(vals, dst)
+		st.Require().EqualValues(st.commonTestData.vals, dst)
 	})
 
 	st.Run("get single key into a slice", func() {
 		var dst []string
 		st.Require().NoError(
-			st.cache.Get(ctx, &dst, keys[0]),
+			st.cache.Get(ctx, &dst, st.commonTestData.keys[0]),
 			"Multi get failed",
 		)
-		st.Require().EqualValues(vals[0:1], dst)
+		st.Require().EqualValues(st.commonTestData.vals[0:1], dst)
 	})
 
 	st.Run("get all keys into a map", func() {
 		var dst map[string]string
 		st.Require().NoError(
-			st.cache.Get(ctx, &dst, keys...),
+			st.cache.Get(ctx, &dst, st.commonTestData.keys...),
 			"Multi get failed",
 		)
-		st.Require().EqualValues(keyVals, dst)
+		st.Require().EqualValues(st.commonTestData.keyVals, dst)
 	})
 
 	st.Run("get single key into a map", func() {
 		var dst map[string]string
 		st.Require().NoError(
-			st.cache.Get(ctx, &dst, keys[0]),
+			st.cache.Get(ctx, &dst, st.commonTestData.keys[0]),
 			"Multi get failed",
 		)
-		st.Require().EqualValues(map[string]string{keys[0]: vals[0]}, dst)
+		st.Require().EqualValues(map[string]string{st.commonTestData.keys[0]: st.commonTestData.vals[0]}, dst)
 	})
 }
 
 func (st *CacheSuite) TestGetOrLoad() {
 	dst := map[string]string{}
-	keys := []string{faker.RandomString(5), faker.RandomString(5), faker.RandomString(5)}
-	mapFromKeys := func(keys ...string) map[string]string {
-		m := map[string]string{}
-		for _, k := range keys {
-			m[k] = k + "-loaded-val"
-		}
-		return m
-	}
 	getErr := st.cache.GetOrLoad(
 		context.Background(),
 		&dst,
 		func(absentKeys ...string) (interface{}, error) {
-			m := mapFromKeys(absentKeys...)
+			m := map[string]string{}
+			for _, k := range absentKeys {
+				m[k] = st.commonTestData.keyVals[k]
+			}
 			return m, nil
 		},
-		keys...,
+		st.commonTestData.keys...,
 	)
-	expectedMap := mapFromKeys(keys...)
+
+	expectedMap := st.commonTestData.keyVals
 
 	st.Require().NoError(getErr, "No error expected on loading keys from cache")
 	st.Require().Empty(cmp.Diff(expectedMap, dst), "", "maps should be identical")
+
+	for k, v := range expectedMap {
+		var dstSingle string
+		singleKeyGetErr := st.cache.Get(context.Background(), &dstSingle, k)
+		st.Require().NoErrorf(singleKeyGetErr, "No error expected on getting %q", k)
+		st.Require().Equalf(v, dstSingle, "Unexpected value for key %q", k)
+	}
 }
 
 func TestCacheSuite(t *testing.T) {

@@ -142,6 +142,28 @@ func addAbsentKeys(ctx context.Context, opts *Options, dst interface{}, loadFn f
 			container.AddElement(key, val)
 		}
 		return SetMulti(ctx, opts, items...)
+	case reflect.Slice:
+		if v.Len() == 0 {
+			return nil
+		}
+		container, containerInitErr := containers.NewContainer(dst)
+		if containerInitErr != nil {
+			return containerInitErr
+		}
+		items := make([]*Item, 0, v.Len())
+		for i := 0; i < v.Len(); i++ {
+			val := v.Index(i).Interface()
+			var key string
+			if item, ok := val.(*Item); ok {
+				items = append(items, item)
+				// @todo add possibility to use the key from the map
+				key = item.Key
+			} else {
+				return errors.Errorf("Unsupported slice element %T", val)
+			}
+			container.AddElement(key, val)
+		}
+		return SetMulti(ctx, opts, items...)
 	default:
 		return errors.Errorf("Unsupported kind %q", kind)
 	}
