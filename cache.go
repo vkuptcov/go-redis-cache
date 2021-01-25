@@ -34,5 +34,5 @@ func (cd *Cache) Get(ctx context.Context, dst interface{}, keys ...string) error
 }
 
 func (cd *Cache) GetOrLoad(ctx context.Context, dst interface{}, loadFn func(absentKeys ...string) (interface{}, error), keys ...string) error {
-	return internal.GetOrLoad(ctx, (*internal.Options)(cd.opt), dst, loadFn, keys...)
+	return internal.GetOrLoad(ctx, (*internal.Options)(cd.opt), dst, loadFn, keys)
 }

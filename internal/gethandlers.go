@@ -2,13 +2,19 @@ package internal
 
 import (
 	"context"
-	"reflect"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
 
 	"github.com/vkuptcov/go-redis-cache/v8/internal/containers"
 )
+
+type GetLoadArgs struct {
+	Dst         interface{}
+	KeysToGet   []string
+	LoadFn      func(absentKeys ...string) (interface{}, error)
+	ItemToGetFn func(it interface{}) string
+}
 
 func Get(ctx context.Context, opts *Options, dst interface{}, keys []string) error {
 	loadedBytes, loadedElementsCount, loadErr := getBytes(ctx, opts, keys)
@@ -37,7 +43,7 @@ func Get(ctx context.Context, opts *Options, dst interface{}, keys []string) err
 	return nil
 }
 
-func GetOrLoad(ctx context.Context, opts *Options, dst interface{}, loadFn func(absentKeys ...string) (interface{}, error), keys ...string) error {
+func GetOrLoad(ctx context.Context, opts *Options, dst interface{}, loadFn func(absentKeys ...string) (interface{}, error), keys []string) error {
 	ctx = WithCacheMissErrorsContext(ctx)
 	loadErr := Get(ctx, opts, dst, keys)
 	if loadErr != nil {
@@ -108,63 +114,17 @@ func addAbsentKeys(ctx context.Context, opts *Options, dst interface{}, loadFn f
 	if loadErr != nil {
 		return loadErr
 	}
-	v := reflect.ValueOf(data)
-	switch kind := v.Kind(); kind {
-	case reflect.Map:
-		if v.Len() == 0 {
-			return nil
-		}
-		mapType := v.Type()
-		keyType := mapType.Key()
-		if keyType.Kind() != reflect.String {
-			return errors.Errorf("dst key type must be a string, %v given", keyType.Kind())
-		}
-		container, containerInitErr := containers.NewContainer(dst)
-		if containerInitErr != nil {
-			return containerInitErr
-		}
-		iter := v.MapRange()
-		items := make([]*Item, 0, v.Len())
-		for iter.Next() {
-			val := iter.Value().Interface()
-			var key string
-			if item, ok := val.(*Item); ok {
-				items = append(items, item)
-				// @todo add possibility to use the key from the map
-				key = item.Key
-			} else {
-				key = iter.Key().String()
-				items = append(items, &Item{
-					Key:   key,
-					Value: val,
-				})
-			}
-			container.AddElement(key, val)
-		}
-		return SetMulti(ctx, opts, items...)
-	case reflect.Slice:
-		if v.Len() == 0 {
-			return nil
-		}
-		container, containerInitErr := containers.NewContainer(dst)
-		if containerInitErr != nil {
-			return containerInitErr
-		}
-		items := make([]*Item, 0, v.Len())
-		for i := 0; i < v.Len(); i++ {
-			val := v.Index(i).Interface()
-			var key string
-			if item, ok := val.(*Item); ok {
-				items = append(items, item)
-				// @todo add possibility to use the key from the map
-				key = item.Key
-			} else {
-				return errors.Errorf("Unsupported slice element %T", val)
-			}
-			container.AddElement(key, val)
-		}
-		return SetMulti(ctx, opts, items...)
-	default:
-		return errors.Errorf("Unsupported kind %q", kind)
+	dt := newDataTransformer(data)
+	items, transformErr := dt.getItems()
+	if transformErr != nil {
+		return transformErr
 	}
+	container, containerInitErr := containers.NewContainer(dst)
+	if containerInitErr != nil {
+		return containerInitErr
+	}
+	for _, it := range items {
+		container.AddElement(it.Key, it.Value)
+	}
+	return SetMulti(ctx, opts, items...)
 }

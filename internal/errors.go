@@ -7,6 +7,7 @@ import (
 )
 
 var ErrCacheMiss = errors.New("cache: key is missing")
+var ErrWrongLoadFnType = errors.New("load function must return slice or key-value map")
 
 type KeyErr struct {
 	KeysToErrs         map[string]error
