@@ -13,7 +13,7 @@ type GetLoadArgs struct {
 	Dst         interface{}
 	KeysToGet   []string
 	LoadFn      func(absentKeys ...string) (interface{}, error)
-	ItemToGetFn func(it interface{}) string
+	ItemToKeyFn func(it interface{}) string
 }
 
 func Get(ctx context.Context, opts *Options, dst interface{}, keys []string) error {
@@ -43,9 +43,9 @@ func Get(ctx context.Context, opts *Options, dst interface{}, keys []string) err
 	return nil
 }
 
-func GetOrLoad(ctx context.Context, opts *Options, dst interface{}, loadFn func(absentKeys ...string) (interface{}, error), keys []string) error {
+func GetOrLoad(ctx context.Context, opts *Options, args GetLoadArgs) error {
 	ctx = WithCacheMissErrorsContext(ctx)
-	loadErr := Get(ctx, opts, dst, keys)
+	loadErr := Get(ctx, opts, args.Dst, args.KeysToGet)
 	if loadErr != nil {
 		var byKeyLoadErr *KeyErr
 		if errors.As(loadErr, &byKeyLoadErr) && !byKeyLoadErr.HasNonCacheMissErrs() {
@@ -53,7 +53,11 @@ func GetOrLoad(ctx context.Context, opts *Options, dst interface{}, loadFn func(
 			for k := range byKeyLoadErr.KeysToErrs {
 				absentKeys = append(absentKeys, k)
 			}
-			return addAbsentKeys(ctx, opts, dst, loadFn, absentKeys)
+			additionallyLoadedData, additionalErr := args.LoadFn(absentKeys...)
+			if additionalErr != nil {
+				return additionalErr
+			}
+			return addAbsentKeys(ctx, opts, additionallyLoadedData, args.Dst, args.ItemToKeyFn)
 		}
 	}
 	return loadErr
@@ -109,12 +113,8 @@ func getBytes(ctx context.Context, opts *Options, keys []string) (b [][]byte, lo
 	return b, loadedElementsCount, byKeysErr
 }
 
-func addAbsentKeys(ctx context.Context, opts *Options, dst interface{}, loadFn func(absentKeys ...string) (interface{}, error), absentKeys []string) error {
-	data, loadErr := loadFn(absentKeys...)
-	if loadErr != nil {
-		return loadErr
-	}
-	dt := newDataTransformer(data)
+func addAbsentKeys(ctx context.Context, opts *Options, data interface{}, dst interface{}, itemToKeyFn func(it interface{}) string) error {
+	dt := newDataTransformer(data, itemToKeyFn)
 	items, transformErr := dt.getItems()
 	if transformErr != nil {
 		return transformErr

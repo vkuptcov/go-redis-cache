@@ -2,10 +2,12 @@ package cache
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/suite"
 	"syreclabs.com/go/faker"
 
@@ -190,31 +192,103 @@ func (st *CacheSuite) TestGet() {
 	})
 }
 
-func (st *CacheSuite) TestGetOrLoad() {
-	dst := map[string]string{}
-	getErr := st.cache.GetOrLoad(
-		context.Background(),
-		&dst,
-		func(absentKeys ...string) (interface{}, error) {
-			m := map[string]string{}
-			for _, k := range absentKeys {
-				m[k] = st.commonTestData.keyVals[k]
-			}
-			return m, nil
+func (st *CacheSuite) TestGetOrLoad_IntoMap() {
+	testDestinations := []struct {
+		dst          func() interface{}
+		expectedData func() interface{}
+	}{
+		{
+			dst: func() interface{} {
+				return map[string]string{}
+			},
+			expectedData: func() interface{} {
+				return st.commonTestData.keyVals
+			},
 		},
-		st.commonTestData.keys...,
-	)
+		{
+			dst: func() interface{} {
+				return []string{}
+			},
+			expectedData: func() interface{} {
+				return st.commonTestData.vals
+			},
+		},
+	}
 
-	expectedMap := st.commonTestData.keyVals
+	testData := []struct {
+		testCase string
+		args     GetLoadArgs
+		loadFn   func(absentKeys ...string) (interface{}, error)
+	}{
+		{
+			testCase: "function returns kv-map",
+			args: GetLoadArgs{
+				LoadFn: func(absentKeys ...string) (interface{}, error) {
+					m := map[string]string{}
+					for _, k := range absentKeys {
+						m[k] = st.commonTestData.keyVals[k]
+					}
+					return m, nil
+				},
+			},
+		},
+		{
+			testCase: "function returns slice",
+			args: GetLoadArgs{
+				LoadFn: func(absentKeys ...string) (interface{}, error) {
+					var s []string
+					for _, k := range absentKeys {
+						s = append(s, st.commonTestData.keyVals[k])
+					}
+					return s, nil
+				},
+				ItemToKeyFn: func(it interface{}) string {
+					for k, v := range st.commonTestData.keyVals {
+						if v == it.(string) {
+							return k
+						}
+					}
+					return ""
+				},
+			},
+		},
+	}
 
-	st.Require().NoError(getErr, "No error expected on loading keys from cache")
-	st.Require().Empty(cmp.Diff(expectedMap, dst), "", "maps should be identical")
+	for _, dstData := range testDestinations {
+		for _, td := range testData {
+			st.SetupTest()
+			dst := dstData.dst()
+			st.Run(fmt.Sprintf("%s adds element into %T", td.testCase, dst), func() {
+				td.args.Dst = &dst
+				td.args.KeysToGet = st.commonTestData.keys
+				getErr := st.cache.GetOrLoad(
+					context.Background(),
+					td.args,
+				)
 
-	for k, v := range expectedMap {
-		var dstSingle string
-		singleKeyGetErr := st.cache.Get(context.Background(), &dstSingle, k)
-		st.Require().NoErrorf(singleKeyGetErr, "No error expected on getting %q", k)
-		st.Require().Equalf(v, dstSingle, "Unexpected value for key %q", k)
+				expectedData := dstData.expectedData()
+
+				st.Require().NoError(getErr, "No error expected on loading keys from cache")
+				diff := cmp.Diff(
+					expectedData,
+					dst,
+					cmpopts.SortSlices(func(x, y string) bool {
+						return x > y
+					}),
+					cmpopts.SortMaps(func(x, y string) bool {
+						return x > y
+					}),
+				)
+				st.Require().Empty(diff, "result data should be identical")
+
+				for k, v := range st.commonTestData.keyVals {
+					var dstSingle string
+					singleKeyGetErr := st.cache.Get(context.Background(), &dstSingle, k)
+					st.Require().NoErrorf(singleKeyGetErr, "No error expected on getting %q", k)
+					st.Require().Equalf(v, dstSingle, "Unexpected value for key %q", k)
+				}
+			})
+		}
 	}
 }
 

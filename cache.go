@@ -33,6 +33,10 @@ func (cd *Cache) Get(ctx context.Context, dst interface{}, keys ...string) error
 	return internal.Get(ctx, (*internal.Options)(cd.opt), dst, keys)
 }
 
-func (cd *Cache) GetOrLoad(ctx context.Context, dst interface{}, loadFn func(absentKeys ...string) (interface{}, error), keys ...string) error {
-	return internal.GetOrLoad(ctx, (*internal.Options)(cd.opt), dst, loadFn, keys)
+func (cd *Cache) GetOrLoad(ctx context.Context, args GetLoadArgs) error {
+	return internal.GetOrLoad(
+		ctx,
+		(*internal.Options)(cd.opt),
+		(internal.GetLoadArgs)(args),
+	)
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func newDataTransformer(data interface{}) interface {
+func newDataTransformer(data interface{}, itemToKeyFn func(it interface{}) string) interface {
 	getItems() ([]*Item, error)
 } {
 	v := reflect.ValueOf(data)
@@ -14,7 +14,10 @@ func newDataTransformer(data interface{}) interface {
 	case reflect.Map:
 		return mapTransformer{v}
 	case reflect.Slice:
-		return sliceTransformer{v}
+		return sliceTransformer{
+			v:           v,
+			itemToKeyFn: itemToKeyFn,
+		}
 	default:
 		// @todo support single element here
 		panic(errors.Wrapf(ErrWrongLoadFnType, "Unsupported kind %q", kind))
@@ -54,7 +57,8 @@ func (mt mapTransformer) getItems() ([]*Item, error) {
 }
 
 type sliceTransformer struct {
-	v reflect.Value
+	v           reflect.Value
+	itemToKeyFn func(it interface{}) string
 }
 
 func (st sliceTransformer) getItems() ([]*Item, error) {
@@ -68,7 +72,10 @@ func (st sliceTransformer) getItems() ([]*Item, error) {
 		if item, ok := val.(*Item); ok {
 			items = append(items, item)
 		} else {
-			return nil, errors.Errorf("Unsupported slice element %T", val)
+			items = append(items, &Item{
+				Key:   st.itemToKeyFn(val),
+				Value: val,
+			})
 		}
 	}
 	return items, nil

@@ -17,6 +17,9 @@ type containerInt interface {
 }
 
 type baseContainer struct {
+	// assignableValue is different from cntValue in case of container element
+	// is defined as an interface{}
+	assignableValue   reflect.Value
 	cntValue          reflect.Value
 	cntType           reflect.Type
 	elementType       reflect.Type
@@ -55,7 +58,8 @@ type sliceContainer struct {
 }
 
 func (s sliceContainer) AddElement(_ string, value interface{}) {
-	s.cntValue.Set(reflect.Append(s.cntValue, s.dstElementToValue(value)))
+	s.cntValue = reflect.Append(s.cntValue, s.dstElementToValue(value))
+	s.assignableValue.Set(s.cntValue)
 }
 
 func (s sliceContainer) InitWithSize(size int) {
@@ -65,17 +69,19 @@ func (s sliceContainer) InitWithSize(size int) {
 }
 
 func NewContainer(dst interface{}) (containerInt, error) {
-	reflectValue := reflect.ValueOf(dst)
-	if reflectValue.Kind() == reflect.Ptr {
-		// get the dst that the pointer reflectValue points to.
-		reflectValue = reflectValue.Elem()
-	}
-
+	reflectValue := reflect.Indirect(reflect.ValueOf(dst))
 	var result containerInt
 	base := &baseContainer{
-		cntValue: reflectValue,
+		assignableValue: reflectValue,
 	}
-	switch reflectValue.Kind() {
+	// the check is needed if dst is created via a function which returns an interface{}
+	if _, ok := dst.(*interface{}); ok {
+		reflectValue = reflectValue.Elem()
+	}
+	kind := reflectValue.Kind()
+	base.cntValue = reflectValue
+
+	switch kind {
 	case reflect.Map:
 		mapType := reflectValue.Type()
 		// get the type of the key.

@@ -5,3 +5,5 @@ import (
 )
 
 type Item internal.Item
+
+type GetLoadArgs internal.GetLoadArgs
