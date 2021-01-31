@@ -8,12 +8,12 @@ import (
 )
 
 type Cache struct {
-	opt *Options
+	opt Options
 }
 
 const defaultDuration = 1 * time.Hour
 
-func NewCache(opt *Options) *Cache {
+func NewCache(opt Options) *Cache {
 	cacheDuration := defaultDuration
 	if opt.DefaultTTL >= 1*time.Second {
 		cacheDuration = opt.DefaultTTL

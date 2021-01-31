@@ -35,7 +35,7 @@ func (st *CacheSuite) SetupSuite() {
 		Addr: "localhost:6379",
 	})
 
-	st.cache = &Cache{opt: &Options{
+	st.cache = &Cache{opt: Options{
 		Redis:      st.client,
 		DefaultTTL: 0,
 		Marshaller: marshaller.NewMarshaller(&marshaller.JSONMarshaller{}),

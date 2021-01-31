@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func SetKV(ctx context.Context, opts *Options, keyValPairs ...interface{}) (err error) {
+func SetKV(ctx context.Context, opts Options, keyValPairs ...interface{}) (err error) {
 	if len(keyValPairs)%2 != 0 {
 		return errors.New("key-values pairs must be provided")
 	}
@@ -26,7 +26,7 @@ func SetKV(ctx context.Context, opts *Options, keyValPairs ...interface{}) (err 
 	return SetMulti(ctx, opts, items...)
 }
 
-func SetMulti(ctx context.Context, opts *Options, items ...*Item) (err error) {
+func SetMulti(ctx context.Context, opts Options, items ...*Item) (err error) {
 	r := opts.Redis
 	var pipeliner redis.Pipeliner
 	if len(items) > 1 && r != nil {
@@ -45,7 +45,7 @@ func SetMulti(ctx context.Context, opts *Options, items ...*Item) (err error) {
 	return err
 }
 
-func setOne(ctx context.Context, opts *Options, redis Rediser, item *Item) error {
+func setOne(ctx context.Context, opts Options, redis Rediser, item *Item) error {
 	b, marshalErr := opts.Marshaller.Marshal(item.Value)
 	if marshalErr != nil {
 		return marshalErr

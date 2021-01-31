@@ -16,7 +16,7 @@ type GetLoadArgs struct {
 	ItemToKeyFn func(it interface{}) string
 }
 
-func Get(ctx context.Context, opts *Options, dst interface{}, keys []string) error {
+func Get(ctx context.Context, opts Options, dst interface{}, keys []string) error {
 	loadedBytes, loadedElementsCount, loadErr := getBytes(ctx, opts, keys)
 	if loadErr != nil {
 		return loadErr
@@ -43,7 +43,7 @@ func Get(ctx context.Context, opts *Options, dst interface{}, keys []string) err
 	return nil
 }
 
-func GetOrLoad(ctx context.Context, opts *Options, args GetLoadArgs) error {
+func GetOrLoad(ctx context.Context, opts Options, args GetLoadArgs) error {
 	ctx = WithCacheMissErrorsContext(ctx)
 	loadErr := Get(ctx, opts, args.Dst, args.KeysToGet)
 	if loadErr != nil {
@@ -64,7 +64,7 @@ func GetOrLoad(ctx context.Context, opts *Options, args GetLoadArgs) error {
 }
 
 // @todo optimize it for single key
-func getBytes(ctx context.Context, opts *Options, keys []string) (b [][]byte, loadedElementsCount int, err error) {
+func getBytes(ctx context.Context, opts Options, keys []string) (b [][]byte, loadedElementsCount int, err error) {
 	includeCacheMissErrors, _ := ctx.Value(IncludeCacheMissErrsKey).(bool)
 	pipeliner := opts.Redis.Pipeline()
 	for _, k := range keys {
@@ -113,7 +113,7 @@ func getBytes(ctx context.Context, opts *Options, keys []string) (b [][]byte, lo
 	return b, loadedElementsCount, byKeysErr
 }
 
-func addAbsentKeys(ctx context.Context, opts *Options, data interface{}, dst interface{}, itemToKeyFn func(it interface{}) string) error {
+func addAbsentKeys(ctx context.Context, opts Options, data interface{}, dst interface{}, itemToKeyFn func(it interface{}) string) error {
 	dt := newDataTransformer(data, itemToKeyFn)
 	items, transformErr := dt.getItems()
 	if transformErr != nil {

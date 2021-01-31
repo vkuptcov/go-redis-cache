@@ -12,7 +12,7 @@ type Options struct {
 	Marshaller Marshaller
 }
 
-func (opt *Options) redisTTL(item *Item) time.Duration {
+func (opt Options) redisTTL(item *Item) time.Duration {
 	if item.TTL < 0 {
 		return 0
 	}
