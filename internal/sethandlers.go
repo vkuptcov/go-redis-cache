@@ -7,9 +7,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-func SetKV(ctx context.Context, opts Options, keyValPairs ...interface{}) (err error) {
+func SetKV(ctx context.Context, opts Options, keyValPairs ...interface{}) error {
 	if len(keyValPairs)%2 != 0 {
-		return errors.New("key-values pairs must be provided")
+		return ErrKeyPairs
 	}
 	items := make([]*Item, len(keyValPairs)/2)
 	for id := 0; id < len(keyValPairs); id += 2 {
@@ -51,7 +51,7 @@ func setOne(ctx context.Context, opts Options, redis Rediser, item *Item) error 
 		return marshalErr
 	}
 
-	ttl := opts.redisTTL(item)
+	ttl := opts.redisTTL(item.TTL)
 
 	if item.IfExists {
 		return redis.SetXX(ctx, item.Key, b, ttl).Err()

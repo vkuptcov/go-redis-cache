@@ -56,12 +56,20 @@ func (cd *Cache) AddCacheMissErrors() *Cache {
 }
 
 // Set sets multiple elements
-func (cd *Cache) Set(ctx context.Context, items ...*Item) (err error) {
+func (cd *Cache) Set(ctx context.Context, items ...*Item) error {
 	return internal.SetMulti(ctx, cd.opt, items...)
 }
 
-func (cd *Cache) SetKV(ctx context.Context, keyValPairs ...interface{}) (err error) {
+func (cd *Cache) SetKV(ctx context.Context, keyValPairs ...interface{}) error {
 	return internal.SetKV(ctx, cd.opt, keyValPairs...)
+}
+
+func (cd *Cache) HSetKV(ctx context.Context, key string, fieldValPairs ...interface{}) error {
+	return internal.HSetKV(ctx, cd.opt, key, fieldValPairs...)
+}
+
+func (cd *Cache) HSet(ctx context.Context, items ...*HItem) error {
+	return internal.HSet(ctx, cd.opt, items...)
 }
 
 // Get gets the value for the given keys
