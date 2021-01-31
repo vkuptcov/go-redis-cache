@@ -193,7 +193,7 @@ func (st *CacheSuite) TestGet() {
 	})
 }
 
-func (st *CacheSuite) TestGetOrLoad_IntoMap() {
+func (st *CacheSuite) TestGet_IntoContainer_WithoutMapKeyModification() {
 	testDestinations := []struct {
 		dst          func() interface{}
 		expectedData func() interface{}
@@ -223,30 +223,33 @@ func (st *CacheSuite) TestGetOrLoad_IntoMap() {
 	}{
 		{
 			testCase: "function returns kv-map",
-			cache: st.cache.WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
-				m := map[string]string{}
-				for _, k := range absentKeys {
-					m[k] = st.commonTestData.keyVals[k]
-				}
-				return m, nil
-			}),
+			cache: st.cache.
+				WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
+					m := map[string]string{}
+					for _, k := range absentKeys {
+						m[k] = st.commonTestData.keyVals[k]
+					}
+					return m, nil
+				}),
 		},
 		{
 			testCase: "function returns slice",
-			cache: st.cache.WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
-				var s []string
-				for _, k := range absentKeys {
-					s = append(s, st.commonTestData.keyVals[k])
-				}
-				return s, nil
-			}).WithItemToKey(func(it interface{}) string {
-				for k, v := range st.commonTestData.keyVals {
-					if v == it.(string) {
-						return k
+			cache: st.cache.
+				WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
+					var s []string
+					for _, k := range absentKeys {
+						s = append(s, st.commonTestData.keyVals[k])
 					}
-				}
-				return ""
-			}),
+					return s, nil
+				}).
+				WithItemToCacheKey(func(it interface{}) string {
+					for k, v := range st.commonTestData.keyVals {
+						if v == it.(string) {
+							return k
+						}
+					}
+					return ""
+				}),
 		},
 	}
 
@@ -275,15 +278,60 @@ func (st *CacheSuite) TestGetOrLoad_IntoMap() {
 					}),
 				)
 				st.Require().Empty(diff, "result data should be identical")
-
-				for k, v := range st.commonTestData.keyVals {
-					var dstSingle string
-					singleKeyGetErr := st.cache.Get(context.Background(), &dstSingle, k)
-					st.Require().NoErrorf(singleKeyGetErr, "No error expected on getting %q", k)
-					st.Require().Equalf(v, dstSingle, "Unexpected value for key %q", k)
-				}
+				st.checkKeysPresenceInCache()
 			})
 		}
+	}
+}
+
+func (st *CacheSuite) TestGet_IntoMap_WithMapKeyModification() {
+	dst := map[string]string{}
+
+	expectedData := map[string]string{}
+	for k, v := range st.commonTestData.keyVals {
+		expectedData["converted_"+k] = v
+	}
+
+	getErr := st.cache.
+		ConvertCacheKeyToMapKey(func(cacheKey string) string {
+			return "converted_" + cacheKey
+		}).
+		WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
+			m := map[string]string{}
+			for _, k := range absentKeys {
+				m[k] = st.commonTestData.keyVals[k]
+			}
+			return m, nil
+		}).
+		Get(
+			context.Background(),
+			&dst,
+			st.commonTestData.keys...,
+		)
+
+	st.Require().NoError(getErr, "No error expected on loading keys from cache")
+	diff := cmp.Diff(
+		expectedData,
+		dst,
+		cmpopts.SortSlices(func(x, y string) bool {
+			return x > y
+		}),
+		cmpopts.SortMaps(func(x, y string) bool {
+			return x > y
+		}),
+	)
+	st.Require().Empty(diff, "result data should be identical")
+	// check the data is cached by non-changed keys
+	st.checkKeysPresenceInCache()
+}
+
+func (st *CacheSuite) checkKeysPresenceInCache() {
+	st.T().Helper()
+	for k, v := range st.commonTestData.keyVals {
+		var dstSingle string
+		singleKeyGetErr := st.cache.Get(context.Background(), &dstSingle, k)
+		st.Require().NoErrorf(singleKeyGetErr, "No error expected on getting %q", k)
+		st.Require().Equalf(v, dstSingle, "Unexpected value for key %q", k)
 	}
 }
 

@@ -10,7 +10,7 @@ var (
 	ErrNonContainerType = errors.New("dst must be a map or a slice")
 )
 
-type containerInt interface {
+type Container interface {
 	DstEl() interface{}
 	AddElement(key string, value interface{})
 	InitWithSize(size int)
@@ -68,9 +68,9 @@ func (s sliceContainer) InitWithSize(size int) {
 	}
 }
 
-func NewContainer(dst interface{}) (containerInt, error) {
+func NewContainer(dst interface{}) (Container, error) {
 	reflectValue := reflect.Indirect(reflect.ValueOf(dst))
-	var result containerInt
+	var result Container
 	base := &baseContainer{
 		assignableValue: reflectValue,
 	}
@@ -106,5 +106,5 @@ func NewContainer(dst interface{}) (containerInt, error) {
 	return result, nil
 }
 
-var _ containerInt = mapContainer{}
-var _ containerInt = sliceContainer{}
+var _ Container = mapContainer{}
+var _ Container = sliceContainer{}

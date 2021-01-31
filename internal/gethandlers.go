@@ -25,7 +25,7 @@ func Get(ctx context.Context, opts Options, dst interface{}, keys []string) erro
 			if additionalErr != nil {
 				return additionalErr
 			}
-			return addAbsentKeys(ctx, opts, additionallyLoadedData, dst, opts.ItemToKeyFn)
+			return addAbsentKeys(ctx, opts, additionallyLoadedData, dst, opts.ItemToCacheKey)
 		}
 	}
 	return loadErr
@@ -53,7 +53,7 @@ func getFromCache(ctx context.Context, opts Options, dst interface{}, keys []str
 			// @todo init and add KeyErr
 			return unmarshalErr
 		}
-		container.AddElement(keys[idx], dstEl)
+		addElementToContainer(opts, container, keys[idx], dstEl)
 	}
 	return nil
 }
@@ -118,7 +118,14 @@ func addAbsentKeys(ctx context.Context, opts Options, data interface{}, dst inte
 		return containerInitErr
 	}
 	for _, it := range items {
-		container.AddElement(it.Key, it.Value)
+		addElementToContainer(opts, container, it.Key, it.Value)
 	}
 	return SetMulti(ctx, opts, items...)
+}
+
+func addElementToContainer(opts Options, container containers.Container, key string, val interface{}) {
+	if opts.CacheKeyToMapKey != nil {
+		key = opts.CacheKeyToMapKey(key)
+	}
+	container.AddElement(key, val)
 }

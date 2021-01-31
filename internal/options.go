@@ -13,7 +13,9 @@ type Options struct {
 
 	AbsentKeysLoader func(absentKeys ...string) (interface{}, error)
 
-	ItemToKeyFn func(it interface{}) string
+	ItemToCacheKey func(it interface{}) string
+
+	CacheKeyToMapKey func(cacheKey string) string
 
 	AddCacheMissErrors bool
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func newDataTransformer(data interface{}, itemToKeyFn func(it interface{}) string) interface {
+func newDataTransformer(data interface{}, itemToCacheKeyFn func(it interface{}) string) interface {
 	getItems() ([]*Item, error)
 } {
 	v := reflect.ValueOf(data)
@@ -16,7 +16,7 @@ func newDataTransformer(data interface{}, itemToKeyFn func(it interface{}) strin
 	case reflect.Slice:
 		return sliceTransformer{
 			v:           v,
-			itemToKeyFn: itemToKeyFn,
+			itemToKeyFn: itemToCacheKeyFn,
 		}
 	default:
 		// @todo support single element here
