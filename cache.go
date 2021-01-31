@@ -3,7 +3,6 @@ package cache
 import (
 	"context"
 	"time"
-	"unsafe"
 
 	"github.com/vkuptcov/go-redis-cache/v8/internal"
 )
@@ -28,8 +27,7 @@ func NewCache(opt *Options) *Cache {
 
 // Set sets multiple elements
 func (cd *Cache) Set(ctx context.Context, items ...*Item) (err error) {
-	internalItems := *(*[]*internal.Item)(unsafe.Pointer(&items))
-	return internal.SetMulti(ctx, cd.opt, internalItems...)
+	return internal.SetMulti(ctx, cd.opt, items...)
 }
 
 func (cd *Cache) SetKV(ctx context.Context, keyValPairs ...interface{}) (err error) {
