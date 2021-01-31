@@ -1,4 +1,4 @@
-package cache
+package cache_test
 
 import (
 	"context"
@@ -11,13 +11,14 @@ import (
 	"github.com/stretchr/testify/suite"
 	"syreclabs.com/go/faker"
 
+	cache "github.com/vkuptcov/go-redis-cache/v8"
 	"github.com/vkuptcov/go-redis-cache/v8/internal/marshaller"
 )
 
 type CacheSuite struct {
 	suite.Suite
 	client         *redis.Client
-	cache          *Cache
+	cache          *cache.Cache
 	commonTestData commonTestData
 }
 
@@ -35,11 +36,11 @@ func (st *CacheSuite) SetupSuite() {
 		Addr: "localhost:6379",
 	})
 
-	st.cache = &Cache{opt: Options{
+	st.cache = cache.NewCache(cache.Options{
 		Redis:      st.client,
 		DefaultTTL: 0,
 		Marshaller: marshaller.NewMarshaller(&marshaller.JSONMarshaller{}),
-	}}
+	})
 }
 
 func (st *CacheSuite) SetupTest() {
@@ -68,12 +69,12 @@ func (st *CacheSuite) TestSet_DifferentItems() {
 
 	testData := []struct {
 		testCase string
-		items    []*Item
+		items    []*cache.Item
 		dst      func() interface{}
 	}{
 		{
 			testCase: "set single item",
-			items: []*Item{
+			items: []*cache.Item{
 				{
 					Key:   faker.RandomString(10),
 					Value: faker.Lorem().Sentence(5),
@@ -85,7 +86,7 @@ func (st *CacheSuite) TestSet_DifferentItems() {
 		},
 		{
 			testCase: "set several items",
-			items: []*Item{
+			items: []*cache.Item{
 				{
 					Key:   faker.RandomString(10),
 					Value: faker.Lorem().Sentence(5),
@@ -217,7 +218,7 @@ func (st *CacheSuite) TestGetOrLoad_IntoMap() {
 
 	testData := []struct {
 		testCase string
-		cache    *Cache
+		cache    *cache.Cache
 		loadFn   func(absentKeys ...string) (interface{}, error)
 	}{
 		{
