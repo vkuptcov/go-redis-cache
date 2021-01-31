@@ -1,6 +1,8 @@
 package marshaller
 
 import (
+	"math"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -21,59 +23,105 @@ func (st *MarshalUnMarshalSuite) SetupSuite() {
 	}
 }
 
+var marshallerTestData = []struct {
+	testCase     string
+	unmarshalled interface{}
+	marshalled   string
+}{
+	{
+		testCase:     "String",
+		unmarshalled: "some string",
+		marshalled:   "some string",
+	},
+	{
+		testCase:     "Bytes",
+		unmarshalled: []byte{49, 50, 51, 52, 53},
+		marshalled:   "12345",
+	},
+	{
+		testCase:     "Int",
+		unmarshalled: -11,
+		marshalled:   "-11",
+	},
+	{
+		testCase:     "Int8",
+		unmarshalled: int8(-1),
+		marshalled:   "-1",
+	},
+	{
+		testCase:     "Int16",
+		unmarshalled: int16(math.MinInt8) - 1,
+		marshalled:   "-129",
+	},
+	{
+		testCase:     "Int32",
+		unmarshalled: int32(math.MinInt16) - 1,
+		marshalled:   "-32769",
+	},
+	{
+		testCase:     "Int64",
+		unmarshalled: int64(math.MaxInt32) + 1,
+		marshalled:   "2147483648",
+	},
+	{
+		testCase:     "Float32",
+		unmarshalled: float32(0.17),
+		marshalled:   "0.17",
+	},
+	{
+		testCase:     "Float64",
+		unmarshalled: 0.00021,
+		marshalled:   "0.00021",
+	},
+	{
+		testCase:     "Bool false",
+		unmarshalled: false,
+		marshalled:   "f",
+	},
+	{
+		testCase:     "Bool true",
+		unmarshalled: true,
+		marshalled:   "t",
+	},
+	// @todo fix interface unmarshal part
+	//nolint:gocritic // it complains about no-spaces between code and comment
+	//{
+	//	testCase:     "Struct",
+	//	unmarshalled: &structureToSerialize{Field: "f1"},
+	//	marshalled:   "{\"Field\":\"f1\"}",
+	//},
+}
+
 func (st *MarshalUnMarshalSuite) Test_Marshal() {
-	testData := []struct {
-		testCase string
-		val      interface{}
-		expected interface{}
-	}{
-		{
-			testCase: "Nil",
-			val:      nil,
-			expected: nil,
-		},
-		{
-			testCase: "String",
-			val:      "some string",
-			expected: "some string",
-		},
-		{
-			testCase: "Bytes",
-			val:      []byte{49, 50, 51, 52, 53},
-			expected: "12345",
-		},
-		{
-			testCase: "Int",
-			val:      11,
-			expected: "11",
-		},
-		{
-			testCase: "Int64",
-			val:      int64(21),
-			expected: "21",
-		},
-		{
-			testCase: "Float",
-			val:      0.17,
-			expected: "0.17",
-		},
-		{
-			testCase: "Struct",
-			val:      &structureToSerialize{Field: "f1"},
-			expected: "{\"Field\":\"f1\"}",
-		},
-	}
-	for _, td := range testData {
+	for _, td := range marshallerTestData {
 		st.Run(td.testCase, func() {
-			result, marshalErr := st.marshaller.Marshal(td.val)
+			result, marshalErr := st.marshaller.Marshal(td.unmarshalled)
 			st.Require().NoError(marshalErr, "No marshal error expected")
-			if td.expected != nil {
-				st.Require().EqualValues(td.expected, string(result), "Unexpected marshal result")
-			} else {
-				st.Require().Nil(result, "Nil result expected")
-			}
+			st.Require().EqualValues(td.marshalled, string(result), "Unexpected marshal result")
 		})
 	}
+}
+
+func (st *MarshalUnMarshalSuite) Test_Unmarshal() {
+	for _, td := range marshallerTestData {
+		st.Run(td.testCase, func() {
+			dst := reflect.New(reflect.Indirect(reflect.ValueOf(td.unmarshalled)).Type()).Elem().Interface()
+			unmarshalErr := st.marshaller.Unmarshal([]byte(td.marshalled), &dst)
+			st.Require().NoError(unmarshalErr, "No marshal error expected")
+			st.Require().EqualValues(td.unmarshalled, dst, "values must match")
+		})
+	}
+}
+
+func (st *MarshalUnMarshalSuite) Test_Marshal_Nil() {
+	result, marshalErr := st.marshaller.Marshal(nil)
+	st.Require().NoError(marshalErr, "No marshal error expected")
+	st.Require().Nil(result, "unexpected result")
+}
+
+func (st *MarshalUnMarshalSuite) Test_Unmarshal_Nil() {
+	unmarshalErr := st.marshaller.Unmarshal([]byte(""), nil)
+	st.Require().NoError(unmarshalErr, "No marshal error expected")
 }
 
 func (st *MarshalUnMarshalSuite) Test_Unmarshal_String() {

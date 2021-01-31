@@ -127,9 +127,69 @@ func (m *baseMarshaller) Unmarshal(data []byte, dst interface{}) error {
 		*v = string(data) == "t"
 		return nil
 	case *interface{}:
-		t := reflect.Indirect(reflect.ValueOf(dst)).Elem().Kind()
-		if t == reflect.String {
+		// @todo try to unify it with the prev parts
+		dd := reflect.Indirect(reflect.ValueOf(dst)).Interface()
+		switch dd.(type) {
+		case nil:
+			return nil
+		case []byte:
+			clone := make([]byte, len(data))
+			copy(clone, data)
+			*v = clone
+			return nil
+		case string:
 			*v = string(data)
+			return nil
+		case int:
+			parsed, err := strconv.Atoi(string(data))
+			*v = parsed
+			return err
+		case int8:
+			parsed, err := strconv.ParseInt(string(data), 10, 8)
+			*v = int8(parsed)
+			return err
+		case int16:
+			parsed, err := strconv.ParseInt(string(data), 10, 16)
+			*v = int16(parsed)
+			return err
+		case int32:
+			parsed, err := strconv.ParseInt(string(data), 10, 32)
+			*v = int32(parsed)
+			return err
+		case int64:
+			parsed, err := strconv.ParseInt(string(data), 10, 64)
+			*v = parsed
+			return err
+		case uint:
+			parsed, err := strconv.ParseUint(string(data), 10, 64)
+			*v = uint(parsed)
+			return err
+		case uint8:
+			parsed, err := strconv.ParseUint(string(data), 10, 8)
+			*v = uint8(parsed)
+			return err
+		case uint16:
+			parsed, err := strconv.ParseUint(string(data), 10, 16)
+			*v = uint16(parsed)
+			return err
+		case uint32:
+			parsed, err := strconv.ParseUint(string(data), 10, 32)
+			*v = uint32(parsed)
+			return err
+		case uint64:
+			parsed, err := strconv.ParseUint(string(data), 10, 64)
+			*v = parsed
+			return err
+		case float32:
+			float, err := strconv.ParseFloat(string(data), 32)
+			*v = float32(float)
+			return err
+		case float64:
+			float, err := strconv.ParseFloat(string(data), 64)
+			*v = float
+			return err
+		case bool:
+			*v = string(data) == "t"
 			return nil
 		}
 	}
