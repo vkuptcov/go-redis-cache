@@ -6,6 +6,4 @@ import (
 
 type Item = internal.Item
 
-type GetLoadArgs = internal.GetLoadArgs
-
 type Options = internal.Options

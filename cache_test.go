@@ -150,7 +150,7 @@ func (st *CacheSuite) TestGet() {
 
 	st.Run("get non-exists key with cache miss errors", func() {
 		var dst string
-		err := st.cache.Get(WithCacheMissErrorsContext(ctx), &dst, nonExistKey)
+		err := st.cache.AddCacheMissErrors().Get(ctx, &dst, nonExistKey)
 		st.Require().Error(err, "An error expected")
 		st.Require().Empty(dst, "Dst should remain unchanged")
 	})
@@ -217,40 +217,35 @@ func (st *CacheSuite) TestGetOrLoad_IntoMap() {
 
 	testData := []struct {
 		testCase string
-		args     GetLoadArgs
+		cache    *Cache
 		loadFn   func(absentKeys ...string) (interface{}, error)
 	}{
 		{
 			testCase: "function returns kv-map",
-			args: GetLoadArgs{
-				LoadFn: func(absentKeys ...string) (interface{}, error) {
-					m := map[string]string{}
-					for _, k := range absentKeys {
-						m[k] = st.commonTestData.keyVals[k]
-					}
-					return m, nil
-				},
-			},
+			cache: st.cache.WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
+				m := map[string]string{}
+				for _, k := range absentKeys {
+					m[k] = st.commonTestData.keyVals[k]
+				}
+				return m, nil
+			}),
 		},
 		{
 			testCase: "function returns slice",
-			args: GetLoadArgs{
-				LoadFn: func(absentKeys ...string) (interface{}, error) {
-					var s []string
-					for _, k := range absentKeys {
-						s = append(s, st.commonTestData.keyVals[k])
+			cache: st.cache.WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
+				var s []string
+				for _, k := range absentKeys {
+					s = append(s, st.commonTestData.keyVals[k])
+				}
+				return s, nil
+			}).WithItemToKey(func(it interface{}) string {
+				for k, v := range st.commonTestData.keyVals {
+					if v == it.(string) {
+						return k
 					}
-					return s, nil
-				},
-				ItemToKeyFn: func(it interface{}) string {
-					for k, v := range st.commonTestData.keyVals {
-						if v == it.(string) {
-							return k
-						}
-					}
-					return ""
-				},
-			},
+				}
+				return ""
+			}),
 		},
 	}
 
@@ -259,11 +254,10 @@ func (st *CacheSuite) TestGetOrLoad_IntoMap() {
 			st.SetupTest()
 			dst := dstData.dst()
 			st.Run(fmt.Sprintf("%s adds element into %T", td.testCase, dst), func() {
-				td.args.Dst = &dst
-				td.args.KeysToGet = st.commonTestData.keys
-				getErr := st.cache.GetOrLoad(
+				getErr := td.cache.Get(
 					context.Background(),
-					td.args,
+					&dst,
+					st.commonTestData.keys...,
 				)
 
 				expectedData := dstData.expectedData()

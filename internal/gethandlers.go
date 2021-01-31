@@ -9,14 +9,29 @@ import (
 	"github.com/vkuptcov/go-redis-cache/v8/internal/containers"
 )
 
-type GetLoadArgs struct {
-	Dst         interface{}
-	KeysToGet   []string
-	LoadFn      func(absentKeys ...string) (interface{}, error)
-	ItemToKeyFn func(it interface{}) string
+func Get(ctx context.Context, opts Options, dst interface{}, keys []string) error {
+	if opts.AbsentKeysLoader != nil {
+		opts.AddCacheMissErrors = true
+	}
+	loadErr := getFromCache(ctx, opts, dst, keys)
+	if loadErr != nil && opts.AbsentKeysLoader != nil {
+		var byKeyLoadErr *KeyErr
+		if errors.As(loadErr, &byKeyLoadErr) && !byKeyLoadErr.HasNonCacheMissErrs() {
+			absentKeys := make([]string, 0, byKeyLoadErr.CacheMissErrsCount)
+			for k := range byKeyLoadErr.KeysToErrs {
+				absentKeys = append(absentKeys, k)
+			}
+			additionallyLoadedData, additionalErr := opts.AbsentKeysLoader(absentKeys...)
+			if additionalErr != nil {
+				return additionalErr
+			}
+			return addAbsentKeys(ctx, opts, additionallyLoadedData, dst, opts.ItemToKeyFn)
+		}
+	}
+	return loadErr
 }
 
-func Get(ctx context.Context, opts Options, dst interface{}, keys []string) error {
+func getFromCache(ctx context.Context, opts Options, dst interface{}, keys []string) error {
 	loadedBytes, loadedElementsCount, loadErr := getBytes(ctx, opts, keys)
 	if loadErr != nil {
 		return loadErr
@@ -43,29 +58,8 @@ func Get(ctx context.Context, opts Options, dst interface{}, keys []string) erro
 	return nil
 }
 
-func GetOrLoad(ctx context.Context, opts Options, args GetLoadArgs) error {
-	ctx = WithCacheMissErrorsContext(ctx)
-	loadErr := Get(ctx, opts, args.Dst, args.KeysToGet)
-	if loadErr != nil {
-		var byKeyLoadErr *KeyErr
-		if errors.As(loadErr, &byKeyLoadErr) && !byKeyLoadErr.HasNonCacheMissErrs() {
-			absentKeys := make([]string, 0, byKeyLoadErr.CacheMissErrsCount)
-			for k := range byKeyLoadErr.KeysToErrs {
-				absentKeys = append(absentKeys, k)
-			}
-			additionallyLoadedData, additionalErr := args.LoadFn(absentKeys...)
-			if additionalErr != nil {
-				return additionalErr
-			}
-			return addAbsentKeys(ctx, opts, additionallyLoadedData, args.Dst, args.ItemToKeyFn)
-		}
-	}
-	return loadErr
-}
-
 // @todo optimize it for single key
 func getBytes(ctx context.Context, opts Options, keys []string) (b [][]byte, loadedElementsCount int, err error) {
-	includeCacheMissErrors, _ := ctx.Value(IncludeCacheMissErrsKey).(bool)
 	pipeliner := opts.Redis.Pipeline()
 	for _, k := range keys {
 		_ = pipeliner.Get(ctx, k)
@@ -90,7 +84,7 @@ func getBytes(ctx context.Context, opts Options, keys []string) (b [][]byte, loa
 				keyErr = errors.Errorf("*redis.StringCmd expected for key `%s`, %T received", k, cmd)
 			}
 		case errors.Is(cmd.Err(), redis.Nil):
-			if includeCacheMissErrors {
+			if opts.AddCacheMissErrors {
 				keyErr = ErrCacheMiss
 				cacheMissErrsCount++
 			}

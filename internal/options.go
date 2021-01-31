@@ -10,6 +10,12 @@ type Options struct {
 	DefaultTTL time.Duration
 
 	Marshaller Marshaller
+
+	AbsentKeysLoader func(absentKeys ...string) (interface{}, error)
+
+	ItemToKeyFn func(it interface{}) string
+
+	AddCacheMissErrors bool
 }
 
 func (opt Options) redisTTL(item *Item) time.Duration {

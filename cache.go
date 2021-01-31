@@ -25,6 +25,30 @@ func NewCache(opt Options) *Cache {
 	}
 }
 
+func (cd *Cache) WithTTL(ttl time.Duration) *Cache {
+	opts := cd.opt
+	opts.DefaultTTL = ttl
+	return &Cache{opt: opts}
+}
+
+func (cd *Cache) WithAbsentKeysLoader(f func(absentKeys ...string) (interface{}, error)) *Cache {
+	opts := cd.opt
+	opts.AbsentKeysLoader = f
+	return &Cache{opt: opts}
+}
+
+func (cd *Cache) WithItemToKey(f func(it interface{}) string) *Cache {
+	opts := cd.opt
+	opts.ItemToKeyFn = f
+	return &Cache{opt: opts}
+}
+
+func (cd *Cache) AddCacheMissErrors() *Cache {
+	opts := cd.opt
+	opts.AddCacheMissErrors = true
+	return &Cache{opt: opts}
+}
+
 // Set sets multiple elements
 func (cd *Cache) Set(ctx context.Context, items ...*Item) (err error) {
 	return internal.SetMulti(ctx, cd.opt, items...)
@@ -37,12 +61,4 @@ func (cd *Cache) SetKV(ctx context.Context, keyValPairs ...interface{}) (err err
 // Get gets the value for the given keys
 func (cd *Cache) Get(ctx context.Context, dst interface{}, keys ...string) error {
 	return internal.Get(ctx, cd.opt, dst, keys)
-}
-
-func (cd *Cache) GetOrLoad(ctx context.Context, args GetLoadArgs) error {
-	return internal.GetOrLoad(
-		ctx,
-		cd.opt,
-		args,
-	)
 }
