@@ -76,3 +76,7 @@ func (cd *Cache) HSet(ctx context.Context, items ...*HItem) error {
 func (cd *Cache) Get(ctx context.Context, dst interface{}, keys ...string) error {
 	return internal.Get(ctx, cd.opt, dst, keys)
 }
+
+func (cd *Cache) HGetAll(ctx context.Context, dst interface{}, keys ...string) error {
+	return internal.HGetAll(ctx, cd.opt, dst, keys)
+}
