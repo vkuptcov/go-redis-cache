@@ -56,7 +56,8 @@ func (st *CacheHashSuite) TestHSet() {
 func (st *CacheHashSuite) TestHGetAll() {
 	ctx := context.Background()
 
-	var expected []string
+	var expectedSlice []string
+	expectedMap := map[string]string{}
 
 	keys := []string{faker.RandomString(10), faker.RandomString(10)}
 
@@ -66,17 +67,22 @@ func (st *CacheHashSuite) TestHGetAll() {
 			field := faker.RandomString(5)
 			val := faker.Lorem().Word()
 			fieldValPairs = append(fieldValPairs, field, val)
-			expected = append(expected, val)
+			expectedSlice = append(expectedSlice, val)
+			expectedMap[k+"-"+field] = val
 		}
 		hsetErr := st.cache.HSetKV(ctx, k, fieldValPairs...)
-		st.Require().NoError(hsetErr, "no error expected on hset")
+		st.Require().NoError(hsetErr, "no error expectedSlice on hset")
 	}
 
-	var dst []string
-	hgetErr := st.cache.HGetAll(ctx, &dst, keys...)
-	st.Require().NoError(hgetErr, "No error expected on HGetAll")
+	var sliceDst []string
+	hgetErr := st.cache.HGetAll(ctx, &sliceDst, keys...)
+	st.Require().NoError(hgetErr, "No error expectedSlice on HGetAll")
+	st.Require().ElementsMatch(expectedSlice, sliceDst, "unexpected slice")
 
-	st.Require().ElementsMatch(expected, dst, "unexpected slice")
+	var mapDst map[string]string
+	hgetErr = st.cache.HGetAll(ctx, &mapDst, keys...)
+	st.Require().NoError(hgetErr, "No error expectedSlice on HGetAll")
+	st.Require().Empty(cmp.Diff(expectedMap, mapDst), "unmatched result")
 }
 
 func TestCacheHashSuite(t *testing.T) {

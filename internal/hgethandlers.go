@@ -21,6 +21,7 @@ func HGetAll(ctx context.Context, opts Options, dst interface{}, keys []string) 
 	if containerInitErr != nil {
 		return containerInitErr
 	}
+	container.InitWithSize(len(cmds))
 	for idx, cmderr := range cmds {
 		if cmderr.Err() != nil {
 			return cmderr.Err()
