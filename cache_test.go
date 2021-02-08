@@ -8,6 +8,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"syreclabs.com/go/faker"
 
@@ -267,17 +268,7 @@ func (st *CacheSuite) TestGet_IntoContainer_WithoutMapKeyModification() {
 				expectedData := dstData.expectedData()
 
 				st.Require().NoError(getErr, "No error expected on loading keys from cache")
-				diff := cmp.Diff(
-					expectedData,
-					dst,
-					cmpopts.SortSlices(func(x, y string) bool {
-						return x > y
-					}),
-					cmpopts.SortMaps(func(x, y string) bool {
-						return x > y
-					}),
-				)
-				st.Require().Empty(diff, "result data should be identical")
+				checkDst(st.T(), expectedData, dst, "result data should be identical")
 				st.checkKeysPresenceInCache()
 			})
 		}
@@ -310,17 +301,7 @@ func (st *CacheSuite) TestGet_IntoMap_WithMapKeyModification() {
 		)
 
 	st.Require().NoError(getErr, "No error expected on loading keys from cache")
-	diff := cmp.Diff(
-		expectedData,
-		dst,
-		cmpopts.SortSlices(func(x, y string) bool {
-			return x > y
-		}),
-		cmpopts.SortMaps(func(x, y string) bool {
-			return x > y
-		}),
-	)
-	st.Require().Empty(diff, "result data should be identical")
+	checkDst(st.T(), expectedData, dst, "result data should be identical")
 	// check the data is cached by non-changed keys
 	st.checkKeysPresenceInCache()
 }
@@ -338,4 +319,19 @@ func (st *CacheSuite) checkKeysPresenceInCache() {
 func TestCacheSuite(t *testing.T) {
 	t.Parallel()
 	suite.Run(t, &CacheSuite{})
+}
+
+func checkDst(t *testing.T, expected interface{}, actual interface{}, msgAndArs ...interface{}) {
+	t.Helper()
+	diff := cmp.Diff(
+		expected,
+		actual,
+		cmpopts.SortSlices(func(x, y string) bool {
+			return x > y
+		}),
+		cmpopts.SortMaps(func(x, y string) bool {
+			return x > y
+		}),
+	)
+	require.New(t).Empty(diff, msgAndArs...)
 }

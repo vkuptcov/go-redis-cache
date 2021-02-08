@@ -80,3 +80,11 @@ func (cd *Cache) Get(ctx context.Context, dst interface{}, keys ...string) error
 func (cd *Cache) HGetAll(ctx context.Context, dst interface{}, keys ...string) error {
 	return internal.HGetAll(ctx, cd.opt, dst, keys)
 }
+
+func (cd *Cache) HGetFieldsForKey(ctx context.Context, dst interface{}, key string, fields ...string) error {
+	return internal.HGetFields(ctx, cd.opt, dst, map[string][]string{key: fields})
+}
+
+func (cd *Cache) HGetKeysAndFields(ctx context.Context, dst interface{}, keysToFields map[string][]string) error {
+	return internal.HGetFields(ctx, cd.opt, dst, keysToFields)
+}
