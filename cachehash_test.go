@@ -38,6 +38,7 @@ func (st *CacheHashSuite) SetupSuite() {
 
 func (st *CacheHashSuite) SetupTest() {
 	st.keys = []string{faker.RandomString(10), faker.RandomString(10)}
+	st.expectedSlice = nil
 	st.expectedMap = map[string]string{}
 	st.keysToFields = map[string][]string{}
 
@@ -117,6 +118,32 @@ func (st *CacheHashSuite) TestHGetFields() {
 				}
 			}
 			checkDst(st.T(), expectedMap, dst, "unexpected map")
+		})
+	}
+}
+
+func (st *CacheHashSuite) TestHGetKeys() {
+	testCases := []struct {
+		testCase string
+		dst      interface{}
+		expected interface{}
+	}{
+		{
+			testCase: "load all keys into a slice",
+			dst:      []string{},
+			expected: st.expectedSlice,
+		},
+		{
+			testCase: "load all keys into a map",
+			dst:      map[string]string{},
+			expected: st.expectedMap,
+		},
+	}
+	for _, tc := range testCases {
+		st.Run(tc.testCase, func() {
+			hgetErr := st.cache.HGetKeysAndFields(context.Background(), &tc.dst, st.keysToFields)
+			st.Require().NoError(hgetErr, "no error expected on HGetKeysAndFields")
+			checkDst(st.T(), tc.expected, tc.dst, "unexpected result")
 		})
 	}
 
