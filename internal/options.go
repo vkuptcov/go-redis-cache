@@ -20,12 +20,12 @@ type Options struct {
 	AddCacheMissErrors bool
 }
 
-func (opt Options) redisTTL(item *Item) time.Duration {
-	if item.TTL < 0 {
+func (opt Options) redisTTL(itemTTL time.Duration) time.Duration {
+	if itemTTL < 0 {
 		return 0
 	}
-	if item.TTL < time.Second {
+	if itemTTL < time.Second {
 		return opt.DefaultTTL
 	}
-	return item.TTL
+	return itemTTL
 }
