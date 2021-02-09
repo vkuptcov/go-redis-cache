@@ -14,34 +14,7 @@ func HGetAll(ctx context.Context, opts Options, dst interface{}, keys []string) 
 	for _, k := range keys {
 		pipeline.HGetAll(ctx, k)
 	}
-	cmds, pipelineErr := pipeline.Exec(ctx)
-	if pipelineErr != nil {
-		return pipelineErr
-	}
-	container, containerInitErr := containers.NewContainer(dst)
-	if containerInitErr != nil {
-		return containerInitErr
-	}
-	container.InitWithSize(len(cmds))
-	for idx, cmderr := range cmds {
-		if cmderr.Err() != nil {
-			return cmderr.Err()
-		}
-		key := keys[idx]
-		if stringStringCmd, ok := cmderr.(*redis.StringStringMapCmd); ok {
-			for field, val := range stringStringCmd.Val() {
-				dstEl := container.DstEl()
-				unmarshalErr := opts.Marshaller.Unmarshal([]byte(val), dstEl)
-				if unmarshalErr != nil {
-					// @todo init and add KeyErr
-					// @todo unify with getFromCache from gethandlers
-					return unmarshalErr
-				}
-				addElementToContainer(opts, container, key+"-"+field, dstEl)
-			}
-		}
-	}
-	return nil
+	return execAndAddIntoContainer(ctx, opts, dst, pipeline)
 }
 
 func HGetFields(ctx context.Context, opts Options, dst interface{}, keysToFields map[string][]string) error {
@@ -49,7 +22,11 @@ func HGetFields(ctx context.Context, opts Options, dst interface{}, keysToFields
 	for key, fields := range keysToFields {
 		pipeline.HMGet(ctx, key, fields...)
 	}
-	cmds, pipelineErr := pipeline.Exec(ctx)
+	return execAndAddIntoContainer(ctx, opts, dst, pipeline)
+}
+
+func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{}, pipeliner redis.Pipeliner) error {
+	cmds, pipelineErr := pipeliner.Exec(ctx)
 	if pipelineErr != nil {
 		return pipelineErr
 	}
@@ -62,10 +39,12 @@ func HGetFields(ctx context.Context, opts Options, dst interface{}, keysToFields
 		if cmderr.Err() != nil {
 			return cmderr.Err()
 		}
-		key := cmderr.Args()[1].(string)
-		if sliceCmd, ok := cmderr.(*redis.SliceCmd); ok {
-			fields := sliceCmd.Args()[2:]
-			for fieldIdx, val := range sliceCmd.Val() {
+
+		switch typedCmd := cmderr.(type) {
+		case *redis.SliceCmd:
+			key := cmderr.Args()[1].(string)
+			fields := typedCmd.Args()[2:]
+			for fieldIdx, val := range typedCmd.Val() {
 				field := fields[fieldIdx].(string)
 				switch t := val.(type) {
 				case error:
@@ -82,6 +61,18 @@ func HGetFields(ctx context.Context, opts Options, dst interface{}, keysToFields
 					}
 					addElementToContainer(opts, container, key+"-"+field, dstEl)
 				}
+			}
+		case *redis.StringStringMapCmd:
+			key := cmderr.Args()[1].(string)
+			for field, val := range typedCmd.Val() {
+				dstEl := container.DstEl()
+				unmarshalErr := opts.Marshaller.Unmarshal([]byte(val), dstEl)
+				if unmarshalErr != nil {
+					// @todo init and add KeyErr
+					// @todo unify with getFromCache from gethandlers
+					return unmarshalErr
+				}
+				addElementToContainer(opts, container, key+"-"+field, dstEl)
 			}
 		}
 	}
