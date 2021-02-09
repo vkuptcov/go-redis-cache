@@ -47,13 +47,11 @@ func getFromCache(ctx context.Context, opts Options, dst interface{}, keys []str
 
 	container.InitWithSize(loadedElementsCount)
 	for idx, b := range loadedBytes {
-		dstEl := container.DstEl()
-		unmarshalErr := opts.Marshaller.Unmarshal(b, dstEl)
-		if unmarshalErr != nil {
+		decodeErr := decodeAndAddElementToContainer(opts, container, keys[idx], string(b))
+		if decodeErr != nil {
 			// @todo init and add KeyErr
-			return unmarshalErr
+			return decodeErr
 		}
-		addElementToContainer(opts, container, keys[idx], dstEl)
 	}
 	return nil
 }
@@ -121,6 +119,16 @@ func addAbsentKeys(ctx context.Context, opts Options, data interface{}, dst inte
 		addElementToContainer(opts, container, it.Key, it.Value)
 	}
 	return SetMulti(ctx, opts, items...)
+}
+
+func decodeAndAddElementToContainer(opts Options, container containers.Container, key, marshalledVal string) error {
+	dstEl := container.DstEl()
+	unmarshalErr := opts.Marshaller.Unmarshal([]byte(marshalledVal), dstEl)
+	if unmarshalErr != nil {
+		return unmarshalErr
+	}
+	addElementToContainer(opts, container, key, dstEl)
+	return nil
 }
 
 func addElementToContainer(opts Options, container containers.Container, key string, val interface{}) {

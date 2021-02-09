@@ -52,27 +52,23 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 						return t
 					}
 				case string:
-					dstEl := container.DstEl()
-					unmarshalErr := opts.Marshaller.Unmarshal([]byte(t), dstEl)
-					if unmarshalErr != nil {
+					decodeErr := decodeAndAddElementToContainer(opts, container, key+"-"+field, t)
+					if decodeErr != nil {
 						// @todo init and add KeyErr
 						// @todo unify with getFromCache from gethandlers
-						return unmarshalErr
+						return decodeErr
 					}
-					addElementToContainer(opts, container, key+"-"+field, dstEl)
 				}
 			}
 		case *redis.StringStringMapCmd:
 			key := cmderr.Args()[1].(string)
 			for field, val := range typedCmd.Val() {
-				dstEl := container.DstEl()
-				unmarshalErr := opts.Marshaller.Unmarshal([]byte(val), dstEl)
-				if unmarshalErr != nil {
+				decodeErr := decodeAndAddElementToContainer(opts, container, key+"-"+field, val)
+				if decodeErr != nil {
 					// @todo init and add KeyErr
 					// @todo unify with getFromCache from gethandlers
-					return unmarshalErr
+					return decodeErr
 				}
-				addElementToContainer(opts, container, key+"-"+field, dstEl)
 			}
 		}
 	}
