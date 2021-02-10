@@ -68,10 +68,6 @@ func (cd *Cache) HSetKV(ctx context.Context, key string, fieldValPairs ...interf
 	return internal.HSetKV(ctx, cd.opt, key, fieldValPairs...)
 }
 
-func (cd *Cache) HSet(ctx context.Context, items ...*HItem) error {
-	return internal.HSet(ctx, cd.opt, items...)
-}
-
 // Get gets the value for the given keys
 func (cd *Cache) Get(ctx context.Context, dst interface{}, keys ...string) error {
 	return internal.Get(ctx, cd.opt, dst, keys)

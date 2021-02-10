@@ -6,8 +6,6 @@ import (
 
 type Item = internal.Item
 
-type HItem = internal.HItem
-
 type Options = internal.Options
 
 type KeyErr = internal.KeyErr

@@ -29,22 +29,3 @@ func HSetKV(ctx context.Context, opts Options, key string, fieldValPairs ...inte
 	_, pipelineErr := pipeline.Exec(ctx)
 	return pipelineErr
 }
-
-func HSet(ctx context.Context, opts Options, items ...*HItem) error {
-	pipeline := opts.Redis.Pipeline()
-	for _, item := range items {
-		marshalledBytes, marshalErr := opts.Marshaller.Marshal(item.Value)
-		if marshalErr != nil {
-			return marshalErr
-		}
-		if item.IfNotExists {
-			pipeline.HSetNX(ctx, item.Key, item.Field, string(marshalledBytes))
-		} else {
-			pipeline.HSet(ctx, item.Key, item.Field, string(marshalledBytes))
-		}
-
-		pipeline.Expire(ctx, item.Key, opts.redisTTL(item.TTL))
-	}
-	_, pipelineErr := pipeline.Exec(ctx)
-	return pipelineErr
-}

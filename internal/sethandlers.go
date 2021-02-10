@@ -27,9 +27,12 @@ func SetKV(ctx context.Context, opts Options, keyValPairs ...interface{}) error 
 }
 
 func SetMulti(ctx context.Context, opts Options, items ...*Item) (err error) {
+	if len(items) == 0 {
+		return nil
+	}
 	r := opts.Redis
 	var pipeliner redis.Pipeliner
-	if len(items) > 1 && r != nil {
+	if len(items) > 1 || items[0].Field != "" {
 		pipeliner = opts.Redis.Pipeline()
 		r = pipeliner
 	}
@@ -53,13 +56,24 @@ func setOne(ctx context.Context, opts Options, redis Rediser, item *Item) error 
 
 	ttl := opts.redisTTL(item.TTL)
 
-	if item.IfExists {
-		return redis.SetXX(ctx, item.Key, b, ttl).Err()
-	}
+	if item.Field == "" {
 
-	if item.IfNotExists {
-		return redis.SetNX(ctx, item.Key, b, ttl).Err()
-	}
+		if item.IfExists {
+			return redis.SetXX(ctx, item.Key, b, ttl).Err()
+		}
 
-	return redis.Set(ctx, item.Key, b, ttl).Err()
+		if item.IfNotExists {
+			return redis.SetNX(ctx, item.Key, b, ttl).Err()
+		}
+
+		return redis.Set(ctx, item.Key, b, ttl).Err()
+	} else {
+		if item.IfNotExists {
+			redis.HSetNX(ctx, item.Key, item.Field, string(b))
+		} else {
+			redis.HSet(ctx, item.Key, item.Field, string(b))
+		}
+		redis.Expire(ctx, item.Key, ttl)
+	}
+	return nil
 }
