@@ -3,7 +3,6 @@ package internal
 import (
 	"context"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
 
 	"github.com/vkuptcov/go-redis-cache/v8/internal/containers"
@@ -32,77 +31,11 @@ func Get(ctx context.Context, opts Options, dst interface{}, keys []string) erro
 }
 
 func getFromCache(ctx context.Context, opts Options, dst interface{}, keys []string) error {
-	loadedBytes, loadedElementsCount, loadErr := getBytes(ctx, opts, keys)
-	if loadErr != nil {
-		return loadErr
-	}
-
-	container, containerErr := containers.NewContainer(dst)
-
-	if errors.Is(containerErr, containers.ErrNonContainerType) {
-		return opts.Marshaller.Unmarshal(loadedBytes[0], dst)
-	} else if containerErr != nil {
-		return containerErr
-	}
-
-	container.InitWithSize(loadedElementsCount)
-	for idx, b := range loadedBytes {
-		decodeErr := decodeAndAddElementToContainer(opts, container, keys[idx], string(b))
-		if decodeErr != nil {
-			// @todo init and add KeyErr
-			return decodeErr
-		}
-	}
-	return nil
-}
-
-// @todo optimize it for single key
-func getBytes(ctx context.Context, opts Options, keys []string) (b [][]byte, loadedElementsCount int, err error) {
 	pipeliner := opts.Redis.Pipeline()
 	for _, k := range keys {
 		_ = pipeliner.Get(ctx, k)
 	}
-
-	// errors are handled by keys
-	cmds, _ := pipeliner.Exec(ctx)
-
-	b = make([][]byte, len(keys))
-
-	keysToErrs := map[string]error{}
-	var cacheMissErrsCount int
-
-	for idx, cmd := range cmds {
-		k := keys[idx]
-		var keyErr error
-		switch {
-		case cmd.Err() == nil:
-			if strCmd, ok := cmd.(*redis.StringCmd); ok {
-				b[idx], keyErr = strCmd.Bytes()
-			} else {
-				keyErr = errors.Errorf("*redis.StringCmd expected for key `%s`, %T received", k, cmd)
-			}
-		case errors.Is(cmd.Err(), redis.Nil):
-			if opts.AddCacheMissErrors {
-				keyErr = ErrCacheMiss
-				cacheMissErrsCount++
-			}
-		default:
-			keyErr = cmd.Err()
-		}
-		if keyErr != nil {
-			keysToErrs[k] = keyErr
-		} else {
-			loadedElementsCount++
-		}
-	}
-	var byKeysErr error
-	if len(keysToErrs) > 0 {
-		byKeysErr = &KeyErr{
-			KeysToErrs:         keysToErrs,
-			CacheMissErrsCount: cacheMissErrsCount,
-		}
-	}
-	return b, loadedElementsCount, byKeysErr
+	return execAndAddIntoContainer(ctx, opts, dst, pipeliner)
 }
 
 func addAbsentKeys(ctx context.Context, opts Options, data interface{}, dst interface{}, itemToKeyFn func(it interface{}) string) error {
