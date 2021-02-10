@@ -12,6 +12,7 @@ var (
 
 type Container interface {
 	DstEl() interface{}
+	AddElementWithSubkey(key, subkey string, value interface{})
 	AddElement(key string, value interface{})
 	InitWithSize(size int)
 }
@@ -43,6 +44,13 @@ type mapContainer struct {
 	*baseContainer
 }
 
+func (m mapContainer) AddElementWithSubkey(key, subkey string, value interface{}) {
+	if subkey != "" {
+		key += "-" + subkey
+	}
+	m.AddElement(key, value)
+}
+
 func (m mapContainer) AddElement(key string, value interface{}) {
 	m.cntValue.SetMapIndex(reflect.ValueOf(key), m.dstElementToValue(value))
 }
@@ -55,6 +63,10 @@ func (m mapContainer) InitWithSize(size int) {
 
 type sliceContainer struct {
 	*baseContainer
+}
+
+func (s sliceContainer) AddElementWithSubkey(key, _ string, value interface{}) {
+	s.AddElement(key, value)
 }
 
 func (s sliceContainer) AddElement(_ string, value interface{}) {

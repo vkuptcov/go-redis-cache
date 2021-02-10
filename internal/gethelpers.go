@@ -9,24 +9,14 @@ import (
 	"github.com/vkuptcov/go-redis-cache/v8/internal/containers"
 )
 
-func HGetAll(ctx context.Context, opts Options, dst interface{}, keys []string) error {
-	pipeline := opts.Redis.Pipeline()
-	for _, k := range keys {
-		pipeline.HGetAll(ctx, k)
-	}
-	return execAndAddIntoContainer(ctx, opts, dst, pipeline)
-}
-
-func HGetFields(ctx context.Context, opts Options, dst interface{}, keysToFields map[string][]string) error {
-	pipeline := opts.Redis.Pipeline()
-	for key, fields := range keysToFields {
-		pipeline.HMGet(ctx, key, fields...)
-	}
-	return execAndAddIntoContainer(ctx, opts, dst, pipeline)
-}
-
 //nolint:gocognit,gocyclo // @todo move switch cases in different functions
-func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{}, pipeliner redis.Pipeliner) error {
+func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{}, pipelinerFiller func(pipeliner redis.Pipeliner)) error {
+	if opts.AbsentKeysLoader != nil {
+		opts.AddCacheMissErrors = true
+	}
+	pipeliner := opts.Redis.Pipeline()
+	pipelinerFiller(pipeliner)
+
 	// pipeliner errs will be checked for all the keys
 	cmds, _ := pipeliner.Exec(ctx)
 
@@ -67,7 +57,7 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 						return t
 					}
 				case string:
-					decodeErr := decodeAndAddElementToContainer(opts, container, key+"-"+field, t)
+					decodeErr := decodeAndAddElementToContainer(opts, container, key, field, t)
 					if decodeErr != nil {
 						// @todo init and add KeyErr
 						// @todo unify with getFromCache from gethandlers
@@ -77,7 +67,7 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 			}
 		case *redis.StringStringMapCmd:
 			for field, val := range typedCmd.Val() {
-				decodeErr := decodeAndAddElementToContainer(opts, container, key+"-"+field, val)
+				decodeErr := decodeAndAddElementToContainer(opts, container, key, field, val)
 				if decodeErr != nil {
 					// @todo init and add KeyErr
 					// @todo unify with getFromCache from gethandlers
@@ -85,7 +75,7 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 				}
 			}
 		case *redis.StringCmd:
-			decodeErr := decodeAndAddElementToContainer(opts, container, key, typedCmd.Val())
+			decodeErr := decodeAndAddElementToContainer(opts, container, key, "", typedCmd.Val())
 			if decodeErr != nil {
 				// @todo init and add KeyErr
 				// @todo unify with getFromCache from gethandlers
