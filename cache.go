@@ -37,7 +37,7 @@ func (cd *Cache) WithAbsentKeysLoader(f func(absentKeys ...string) (interface{},
 	return &Cache{opt: opts}
 }
 
-func (cd *Cache) WithItemToCacheKey(f func(it interface{}) string) *Cache {
+func (cd *Cache) WithItemToCacheKey(f func(it interface{}) (key, field string)) *Cache {
 	opts := cd.opt
 	opts.ItemToCacheKey = f
 	return &Cache{opt: opts}

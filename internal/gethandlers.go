@@ -63,7 +63,7 @@ func addAbsentKeys(ctx context.Context, opts Options, data interface{}, dst inte
 		return containerInitErr
 	}
 	for _, it := range items {
-		addElementToContainer(opts, container, it.Key, "", it.Value)
+		addElementToContainer(opts, container, it.Key, it.Field, it.Value)
 	}
 	return SetMulti(ctx, opts, items...)
 }

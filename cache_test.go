@@ -243,13 +243,13 @@ func (st *CacheSuite) TestGet_IntoContainer_WithoutMapKeyModification() {
 					}
 					return s, nil
 				}).
-				WithItemToCacheKey(func(it interface{}) string {
+				WithItemToCacheKey(func(it interface{}) (string, string) {
 					for k, v := range st.commonTestData.keyVals {
 						if v == it.(string) {
-							return k
+							return k, ""
 						}
 					}
-					return ""
+					return "", ""
 				}),
 		},
 	}

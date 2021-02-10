@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func newDataTransformer(data interface{}, itemToCacheKeyFn func(it interface{}) string) interface {
+func newDataTransformer(data interface{}, itemToCacheKeyFn func(it interface{}) (key, field string)) interface {
 	getItems() ([]*Item, error)
 } {
 	v := reflect.ValueOf(data)
@@ -58,7 +58,7 @@ func (mt mapTransformer) getItems() ([]*Item, error) {
 
 type sliceTransformer struct {
 	v           reflect.Value
-	itemToKeyFn func(it interface{}) string
+	itemToKeyFn func(it interface{}) (key, field string)
 }
 
 func (st sliceTransformer) getItems() ([]*Item, error) {
@@ -72,8 +72,10 @@ func (st sliceTransformer) getItems() ([]*Item, error) {
 		if item, ok := val.(*Item); ok {
 			items = append(items, item)
 		} else {
+			key, field := st.itemToKeyFn(val)
 			items = append(items, &Item{
-				Key:   st.itemToKeyFn(val),
+				Key:   key,
+				Field: field,
 				Value: val,
 			})
 		}
