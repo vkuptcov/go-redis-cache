@@ -72,7 +72,7 @@ func HSetKV(ctx context.Context, opts Options, key string, fieldValPairs ...inte
 	return pipelineErr
 }
 
-func setOne(ctx context.Context, opts Options, redis Rediser, item *Item) error {
+func setOne(ctx context.Context, opts Options, rediser Rediser, item *Item) error {
 	b, marshalErr := opts.Marshaller.Marshal(item.Value)
 	if marshalErr != nil {
 		return marshalErr
@@ -83,21 +83,21 @@ func setOne(ctx context.Context, opts Options, redis Rediser, item *Item) error 
 	if item.Field == "" {
 
 		if item.IfExists {
-			return redis.SetXX(ctx, item.Key, b, ttl).Err()
+			return rediser.SetXX(ctx, item.Key, b, ttl).Err()
 		}
 
 		if item.IfNotExists {
-			return redis.SetNX(ctx, item.Key, b, ttl).Err()
+			return rediser.SetNX(ctx, item.Key, b, ttl).Err()
 		}
 
-		return redis.Set(ctx, item.Key, b, ttl).Err()
+		return rediser.Set(ctx, item.Key, b, ttl).Err()
 	} else {
 		if item.IfNotExists {
-			redis.HSetNX(ctx, item.Key, item.Field, string(b))
+			rediser.HSetNX(ctx, item.Key, item.Field, string(b))
 		} else {
-			redis.HSet(ctx, item.Key, item.Field, string(b))
+			rediser.HSet(ctx, item.Key, item.Field, string(b))
 		}
-		redis.Expire(ctx, item.Key, ttl)
+		rediser.Expire(ctx, item.Key, ttl)
 	}
 	return nil
 }

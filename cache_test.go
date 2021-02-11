@@ -321,7 +321,7 @@ func TestCacheSuite(t *testing.T) {
 	suite.Run(t, &CacheSuite{})
 }
 
-func checkDst(t *testing.T, expected interface{}, actual interface{}, msgAndArs ...interface{}) {
+func checkDst(t *testing.T, expected, actual interface{}, msgAndArs ...interface{}) {
 	t.Helper()
 	diff := cmp.Diff(
 		expected,

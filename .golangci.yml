@@ -4,8 +4,11 @@ linters:
     - bodyclose
     - deadcode
     - dupl
+    - dogsled
+    - errorlint
     - exhaustive
     - exportloopref
+    - forbidigo
     - govet
     - gocognit
     - goconst
@@ -27,7 +30,6 @@ linters:
     - unconvert
     - unparam
 
-
 linters-settings:
   exhaustive:
     # indicates that switch statements are to be considered exhaustive if a
@@ -37,6 +39,13 @@ linters-settings:
   gocognit:
     # minimal code complexity to report, 30 by default (but we recommend 10-20)
     min-complexity: 20
+  gocritic:
+    enabled-tags:
+      - style
+      - diagnostic
+    disabled-checks:
+      - nestingReduce
+      - sloppyReassign
   gocyclo:
     # minimal code complexity to report, 30 by default (but we recommend 10-20)
     min-complexity: 15

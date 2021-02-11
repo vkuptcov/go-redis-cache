@@ -52,7 +52,7 @@ func getInternal(ctx context.Context, opts Options, dst interface{}, pipelinerFi
 	return loadErr
 }
 
-func addAbsentKeys(ctx context.Context, opts Options, data interface{}, dst interface{}) error {
+func addAbsentKeys(ctx context.Context, opts Options, data, dst interface{}) error {
 	dt := newDataTransformer(data, opts.ItemToCacheKey)
 	items, transformErr := dt.getItems()
 	if transformErr != nil {
