@@ -27,9 +27,12 @@ func SetKV(ctx context.Context, opts Options, keyValPairs ...interface{}) error 
 }
 
 func SetMulti(ctx context.Context, opts Options, items ...*Item) (err error) {
+	if len(items) == 0 {
+		return nil
+	}
 	r := opts.Redis
 	var pipeliner redis.Pipeliner
-	if len(items) > 1 && r != nil {
+	if len(items) > 1 || items[0].Field != "" {
 		pipeliner = opts.Redis.Pipeline()
 		r = pipeliner
 	}
@@ -45,7 +48,31 @@ func SetMulti(ctx context.Context, opts Options, items ...*Item) (err error) {
 	return err
 }
 
-func setOne(ctx context.Context, opts Options, redis Rediser, item *Item) error {
+func HSetKV(ctx context.Context, opts Options, key string, fieldValPairs ...interface{}) error {
+	if len(fieldValPairs)%2 != 0 {
+		return ErrKeyPairs
+	}
+	fieldMarshalledValsPairs := make([]interface{}, len(fieldValPairs))
+	for idx := 0; idx < len(fieldValPairs); idx += 2 {
+		field, ok := fieldValPairs[idx].(string)
+		if !ok {
+			return errors.Wrapf(ErrNonStringKey, "string field expected for position %d, `%#+v` of type %T given", idx, fieldValPairs[idx], fieldValPairs[idx])
+		}
+		marshalledBytes, marshalErr := opts.Marshaller.Marshal(fieldValPairs[idx+1])
+		if marshalErr != nil {
+			return marshalErr
+		}
+		fieldMarshalledValsPairs[idx] = field
+		fieldMarshalledValsPairs[idx+1] = string(marshalledBytes)
+	}
+	pipeline := opts.Redis.Pipeline()
+	pipeline.HSet(ctx, key, fieldMarshalledValsPairs...)
+	pipeline.Expire(ctx, key, opts.DefaultTTL)
+	_, pipelineErr := pipeline.Exec(ctx)
+	return pipelineErr
+}
+
+func setOne(ctx context.Context, opts Options, rediser Rediser, item *Item) error {
 	b, marshalErr := opts.Marshaller.Marshal(item.Value)
 	if marshalErr != nil {
 		return marshalErr
@@ -53,13 +80,24 @@ func setOne(ctx context.Context, opts Options, redis Rediser, item *Item) error 
 
 	ttl := opts.redisTTL(item.TTL)
 
-	if item.IfExists {
-		return redis.SetXX(ctx, item.Key, b, ttl).Err()
-	}
+	if item.Field == "" {
 
-	if item.IfNotExists {
-		return redis.SetNX(ctx, item.Key, b, ttl).Err()
-	}
+		if item.IfExists {
+			return rediser.SetXX(ctx, item.Key, b, ttl).Err()
+		}
 
-	return redis.Set(ctx, item.Key, b, ttl).Err()
+		if item.IfNotExists {
+			return rediser.SetNX(ctx, item.Key, b, ttl).Err()
+		}
+
+		return rediser.Set(ctx, item.Key, b, ttl).Err()
+	} else {
+		if item.IfNotExists {
+			rediser.HSetNX(ctx, item.Key, item.Field, string(b))
+		} else {
+			rediser.HSet(ctx, item.Key, item.Field, string(b))
+		}
+		rediser.Expire(ctx, item.Key, ttl)
+	}
+	return nil
 }

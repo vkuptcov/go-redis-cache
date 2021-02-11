@@ -37,7 +37,7 @@ func (cd *Cache) WithAbsentKeysLoader(f func(absentKeys ...string) (interface{},
 	return &Cache{opt: opts}
 }
 
-func (cd *Cache) WithItemToCacheKey(f func(it interface{}) string) *Cache {
+func (cd *Cache) WithItemToCacheKey(f func(it interface{}) (key, field string)) *Cache {
 	opts := cd.opt
 	opts.ItemToCacheKey = f
 	return &Cache{opt: opts}
@@ -66,10 +66,6 @@ func (cd *Cache) SetKV(ctx context.Context, keyValPairs ...interface{}) error {
 
 func (cd *Cache) HSetKV(ctx context.Context, key string, fieldValPairs ...interface{}) error {
 	return internal.HSetKV(ctx, cd.opt, key, fieldValPairs...)
-}
-
-func (cd *Cache) HSet(ctx context.Context, items ...*HItem) error {
-	return internal.HSet(ctx, cd.opt, items...)
 }
 
 // Get gets the value for the given keys
