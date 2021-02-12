@@ -16,6 +16,30 @@ import (
 	"github.com/vkuptcov/go-redis-cache/v8/internal/marshaller"
 )
 
+type BaseCacheSuite struct {
+	suite.Suite
+	client     *redis.Client
+	cache      *cache.Cache
+	marshaller cache.Marshaller
+	ctx        context.Context
+}
+
+func (st *BaseCacheSuite) SetupSuite() {
+	st.client = redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+
+	st.ctx = context.Background()
+
+	st.marshaller = marshaller.NewMarshaller(&marshaller.JSONMarshaller{})
+
+	st.cache = cache.NewCache(cache.Options{
+		Redis:      st.client,
+		DefaultTTL: 0,
+		Marshaller: st.marshaller,
+	})
+}
+
 type CacheSuite struct {
 	suite.Suite
 	client         *redis.Client

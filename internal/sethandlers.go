@@ -9,7 +9,7 @@ import (
 
 func SetKV(ctx context.Context, opts Options, keyValPairs ...interface{}) error {
 	if len(keyValPairs)%2 != 0 {
-		return ErrKeyPairs
+		return errors.Wrapf(ErrKeyPairs, "even keyValPairs number expected, %d given", len(keyValPairs))
 	}
 	items := make([]*Item, len(keyValPairs)/2)
 	for id := 0; id < len(keyValPairs); id += 2 {
