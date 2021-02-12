@@ -40,6 +40,19 @@ func (st *BaseCacheSuite) SetupSuite() {
 	})
 }
 
+func (st *BaseCacheSuite) generateKeyValPairs() (data commonTestData) {
+	data.keyVals = map[string]string{}
+	for i := 0; i < 3; i++ {
+		key := faker.RandomString(5)
+		val := faker.Lorem().Word()
+		data.keyValPairs = append(data.keyValPairs, key, val)
+		data.keys = append(data.keys, key)
+		data.vals = append(data.vals, val)
+		data.keyVals[key] = val
+	}
+	return
+}
+
 type CacheSuite struct {
 	suite.Suite
 	client         *redis.Client

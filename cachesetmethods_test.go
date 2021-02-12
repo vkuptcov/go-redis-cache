@@ -164,35 +164,31 @@ func (st *SetMethodsSuite) TestSet() {
 }
 
 func (st *SetMethodsSuite) TestSetKV() {
-	var keyVals []interface{}
-	for i := 0; i < 3; i++ {
-		keyVals = append(keyVals, faker.RandomString(5), faker.Lorem().Word())
-	}
-	setErr := st.cache.SetKV(st.ctx, keyVals...)
+	keyVals := st.generateKeyValPairs()
+
+	setErr := st.cache.SetKV(st.ctx, keyVals.keyValPairs...)
 	st.Require().NoError(setErr, "No error expected for SetKV")
-	for i := 0; i < len(keyVals); i += 2 {
-		stringCmd := st.client.Get(st.ctx, keyVals[i].(string))
+	for k, v := range keyVals.keyVals {
+		stringCmd := st.client.Get(st.ctx, k)
 		st.Require().NoError(stringCmd.Err(), "No error expected on getting value")
-		st.Require().EqualValues(keyVals[i+1], stringCmd.Val(), "Unexpected value")
+		st.Require().EqualValues(v, stringCmd.Val(), "Unexpected value")
 	}
 }
 
 func (st *SetMethodsSuite) TestHSetKV() {
 	key := faker.RandomString(7)
-	var fieldValPairs []interface{}
-	for i := 0; i < 3; i++ {
-		fieldValPairs = append(fieldValPairs, faker.RandomString(5), faker.Lorem().Word())
-	}
-	setErr := st.cache.HSetKV(st.ctx, key, fieldValPairs...)
+	fieldValPairs := st.generateKeyValPairs()
+
+	setErr := st.cache.HSetKV(st.ctx, key, fieldValPairs.keyValPairs...)
 	st.Require().NoError(setErr, "No error expected for SetKV")
-	for i := 0; i < len(fieldValPairs); i += 2 {
-		stringCmd := st.client.HGet(st.ctx, key, fieldValPairs[i].(string))
+	for f, v := range fieldValPairs.keyVals {
+		stringCmd := st.client.HGet(st.ctx, key, f)
 		st.Require().NoError(stringCmd.Err(), "No error expected on getting value")
-		st.Require().EqualValues(fieldValPairs[i+1], stringCmd.Val(), "Unexpected value")
+		st.Require().EqualValues(v, stringCmd.Val(), "Unexpected value")
 	}
 }
 
-func TestBaseMethodsSuite(t *testing.T) {
+func TestSetMethodsSuite(t *testing.T) {
 	t.Parallel()
 	suite.Run(t, &SetMethodsSuite{})
 }
