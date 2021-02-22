@@ -114,6 +114,37 @@ func (st *GetMethodsSuite) TestHGetKeysAndFields() {
 	})
 }
 
+func (st *GetMethodsSuite) TestHGetFieldsForKey() {
+	hashMapData := st.prepareHashMapData()
+	st.Run("load into a slice", func() {
+		var dst []string
+		for k, d := range hashMapData {
+			st.Require().NoError(
+				st.cache.HGetFieldsForKey(st.ctx, &dst, k, d.keys...),
+				"No error expected on getting keys",
+			)
+			checkDst(st.T(), d.vals, dst, "Unexpected dst")
+			break
+		}
+	})
+	st.Run("load into a map", func() {
+		var dst map[string]string
+		for k, d := range hashMapData {
+			st.Require().NoError(
+				st.cache.HGetFieldsForKey(st.ctx, &dst, k, d.keys...),
+				"No error expected on getting keys",
+			)
+			expectedData := map[string]string{}
+			for idx, f := range d.keys {
+				expectedData[k+"-"+f] = d.vals[idx]
+			}
+
+			checkDst(st.T(), expectedData, dst, "Unexpected dst")
+			break
+		}
+	})
+}
+
 func (st *GetMethodsSuite) prepareHashMapData() map[string]commonTestData {
 	st.T().Helper()
 	firstKey := faker.RandomString(7)
