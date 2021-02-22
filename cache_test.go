@@ -50,7 +50,7 @@ func (st *BaseCacheSuite) generateKeyValPairs() (data commonTestData) {
 		data.vals = append(data.vals, val)
 		data.keyVals[key] = val
 	}
-	return
+	return data
 }
 
 type CacheSuite struct {
