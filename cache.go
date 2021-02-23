@@ -31,6 +31,10 @@ func (cd *Cache) WithTTL(ttl time.Duration) *Cache {
 	return &Cache{opt: opts}
 }
 
+// WithAbsentKeysLoader sets a function to load absent keys.
+// It returns a slice or a map of string keys to an item to cache.
+// The returned item might be something, which can be cached by a codec or
+// an instance of Item
 func (cd *Cache) WithAbsentKeysLoader(f func(absentKeys ...string) (interface{}, error)) *Cache {
 	opts := cd.opt
 	opts.AbsentKeysLoader = f

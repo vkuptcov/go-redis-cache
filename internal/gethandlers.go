@@ -42,18 +42,21 @@ func getInternal(ctx context.Context, opts Options, dst interface{}, pipelinerFi
 			for k := range byKeyLoadErr.KeysToErrs {
 				absentKeys = append(absentKeys, k)
 			}
-			additionallyLoadedData, additionalErr := opts.AbsentKeysLoader(absentKeys...)
-			if additionalErr != nil {
-				return additionalErr
-			}
-			return addAbsentKeys(ctx, opts, additionallyLoadedData, dst)
+			return addAbsentKeys(ctx, opts, dst, absentKeys...)
 		}
 	}
 	return loadErr
 }
 
-func addAbsentKeys(ctx context.Context, opts Options, data, dst interface{}) error {
-	dt := newDataTransformer(data, opts.ItemToCacheKey)
+func addAbsentKeys(ctx context.Context, opts Options, dst interface{}, absentKeys ...string) error {
+	data, additionalErr := opts.AbsentKeysLoader(absentKeys...)
+	if additionalErr != nil {
+		return additionalErr
+	}
+	dt, transformerErr := newDataTransformer(absentKeys, data, opts.ItemToCacheKey)
+	if transformerErr != nil {
+		return transformerErr
+	}
 	items, transformErr := dt.getItems()
 	if transformErr != nil {
 		return transformErr
