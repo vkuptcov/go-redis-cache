@@ -54,7 +54,7 @@ func (st *GetMethodsSuite) TestHGetAll() {
 		var dst []string
 		st.Require().NoError(
 			st.cache.HGetAll(st.ctx, &dst, keys...),
-			"No error expected on getting keys",
+			"No error expected on getting keysToLoad",
 		)
 
 		var expectedData []string
@@ -67,7 +67,7 @@ func (st *GetMethodsSuite) TestHGetAll() {
 		var dst map[string]string
 		st.Require().NoError(
 			st.cache.HGetAll(st.ctx, &dst, keys...),
-			"No error expected on getting keys",
+			"No error expected on getting keysToLoad",
 		)
 		expectedData := map[string]string{}
 		for k, d := range hashMapData {
@@ -90,7 +90,7 @@ func (st *GetMethodsSuite) TestHGetKeysAndFields() {
 		var dst []string
 		st.Require().NoError(
 			st.cache.HGetKeysAndFields(st.ctx, &dst, keysToFields),
-			"No error expected on getting keys",
+			"No error expected on getting keysToLoad",
 		)
 		var expectedData []string
 		for _, d := range hashMapData {
@@ -102,7 +102,7 @@ func (st *GetMethodsSuite) TestHGetKeysAndFields() {
 		var dst map[string]string
 		st.Require().NoError(
 			st.cache.HGetKeysAndFields(st.ctx, &dst, keysToFields),
-			"No error expected on getting keys",
+			"No error expected on getting keysToLoad",
 		)
 		expectedData := map[string]string{}
 		for k, d := range hashMapData {
@@ -121,7 +121,7 @@ func (st *GetMethodsSuite) TestHGetFieldsForKey() {
 		for k, d := range hashMapData {
 			st.Require().NoError(
 				st.cache.HGetFieldsForKey(st.ctx, &dst, k, d.keys...),
-				"No error expected on getting keys",
+				"No error expected on getting keysToLoad",
 			)
 			checkDst(st.T(), d.vals, dst, "Unexpected dst")
 			break
@@ -132,7 +132,7 @@ func (st *GetMethodsSuite) TestHGetFieldsForKey() {
 		for k, d := range hashMapData {
 			st.Require().NoError(
 				st.cache.HGetFieldsForKey(st.ctx, &dst, k, d.keys...),
-				"No error expected on getting keys",
+				"No error expected on getting keysToLoad",
 			)
 			expectedData := map[string]string{}
 			for idx, f := range d.keys {

@@ -129,12 +129,12 @@ func (st *CacheHashSuite) TestHGetKeys() {
 		expected interface{}
 	}{
 		{
-			testCase: "load all keys into a slice",
+			testCase: "load all keysToLoad into a slice",
 			dst:      []string{},
 			expected: st.expectedSlice,
 		},
 		{
-			testCase: "load all keys into a map",
+			testCase: "load all keysToLoad into a map",
 			dst:      map[string]string{},
 			expected: st.expectedMap,
 		},

@@ -79,6 +79,9 @@ func (st sliceTransformer) getItems() ([]*Item, error) {
 		if item, ok := val.(*Item); ok {
 			items = append(items, item)
 		} else {
+			if st.itemToKeyFn == nil {
+				return items, errors.WithStack(ErrItemToCacheKeyFnRequired)
+			}
 			key, field := st.itemToKeyFn(val)
 			items = append(items, &Item{
 				Key:   key,

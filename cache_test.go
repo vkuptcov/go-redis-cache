@@ -194,7 +194,7 @@ func (st *CacheSuite) TestGet() {
 		st.Require().Empty(dst, "Dst should remain unchanged")
 	})
 
-	st.Run("get all keys into a slice", func() {
+	st.Run("get all keysToLoad into a slice", func() {
 		var dst []string
 		st.Require().NoError(
 			st.cache.Get(ctx, &dst, st.commonTestData.keys...),
@@ -212,7 +212,7 @@ func (st *CacheSuite) TestGet() {
 		st.Require().EqualValues(st.commonTestData.vals[0:1], dst)
 	})
 
-	st.Run("get all keys into a map", func() {
+	st.Run("get all keysToLoad into a map", func() {
 		var dst map[string]string
 		st.Require().NoError(
 			st.cache.Get(ctx, &dst, st.commonTestData.keys...),
@@ -304,7 +304,7 @@ func (st *CacheSuite) TestGet_IntoContainer_WithoutMapKeyModification() {
 
 				expectedData := dstData.expectedData()
 
-				st.Require().NoError(getErr, "No error expected on loading keys from cache")
+				st.Require().NoError(getErr, "No error expected on loading keysToLoad from cache")
 				checkDst(st.T(), expectedData, dst, "result data should be identical")
 				st.checkKeysPresenceInCache()
 			})
@@ -337,9 +337,9 @@ func (st *CacheSuite) TestGet_IntoMap_WithMapKeyModification() {
 			st.commonTestData.keys...,
 		)
 
-	st.Require().NoError(getErr, "No error expected on loading keys from cache")
+	st.Require().NoError(getErr, "No error expected on loading keysToLoad from cache")
 	checkDst(st.T(), expectedData, dst, "result data should be identical")
-	// check the data is cached by non-changed keys
+	// check the data is cached by non-changed keysToLoad
 	st.checkKeysPresenceInCache()
 }
 
