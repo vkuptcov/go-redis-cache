@@ -5,6 +5,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 	"syreclabs.com/go/faker"
+
+	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
 )
 
 type GetMethodsSuite struct {
@@ -72,7 +74,7 @@ func (st *GetMethodsSuite) TestHGetAll() {
 		expectedData := map[string]string{}
 		for k, d := range hashMapData {
 			for f, v := range d.keyVals {
-				expectedData[k+"-"+f] = v
+				expectedData[cachekeys.KeyWithField(k, f)] = v
 			}
 		}
 		checkDst(st.T(), expectedData, dst, "Unexpected dst")
@@ -107,7 +109,7 @@ func (st *GetMethodsSuite) TestHGetKeysAndFields() {
 		expectedData := map[string]string{}
 		for k, d := range hashMapData {
 			for idx, f := range d.keys[0:2] {
-				expectedData[k+"-"+f] = d.vals[idx]
+				expectedData[cachekeys.KeyWithField(k, f)] = d.vals[idx]
 			}
 		}
 		checkDst(st.T(), expectedData, dst, "Unexpected dst")
@@ -136,7 +138,7 @@ func (st *GetMethodsSuite) TestHGetFieldsForKey() {
 			)
 			expectedData := map[string]string{}
 			for idx, f := range d.keys {
-				expectedData[k+"-"+f] = d.vals[idx]
+				expectedData[cachekeys.KeyWithField(k, f)] = d.vals[idx]
 			}
 
 			checkDst(st.T(), expectedData, dst, "Unexpected dst")

@@ -6,6 +6,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
 
+	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
 	"github.com/vkuptcov/go-redis-cache/v8/internal/containers"
 )
 
@@ -57,12 +58,12 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 				case string:
 					decodeErr := decodeAndAddElementToContainer(opts, container, key, field, t)
 					if decodeErr != nil {
-						keysToErrs[key+"|"+field] = decodeErr
+						keysToErrs[cachekeys.KeyWithField(key, field)] = decodeErr
 					}
 				default:
 					if t == nil {
 						if opts.AddCacheMissErrors {
-							keysToErrs[key+"|"+field] = ErrCacheMiss
+							keysToErrs[cachekeys.KeyWithField(key, field)] = ErrCacheMiss
 							cacheMissErrsCount++
 						}
 						continue
@@ -75,15 +76,13 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 			for field, val := range typedCmd.Val() {
 				decodeErr := decodeAndAddElementToContainer(opts, container, key, field, val)
 				if decodeErr != nil {
-					keysToErrs[key+"|"+field] = decodeErr
+					keysToErrs[cachekeys.KeyWithField(key, field)] = decodeErr
 				}
 			}
 		case *redis.StringCmd:
 			decodeErr := decodeAndAddElementToContainer(opts, container, key, "", typedCmd.Val())
 			if decodeErr != nil {
-				// @todo init and add KeyErr
-				// @todo unify with getFromCache from gethandlers
-				return decodeErr
+				keysToErrs[key] = decodeErr
 			}
 		}
 	}
