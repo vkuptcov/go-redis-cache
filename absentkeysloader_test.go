@@ -17,7 +17,7 @@ type CacheAbsentKeysLoaderSuite struct {
 	BaseCacheSuite
 }
 
-func (st *CacheAbsentKeysLoaderSuite) TestWithAbsentKeysLoader() {
+func (st *CacheAbsentKeysLoaderSuite) TestViaGet() {
 	testCases := []struct {
 		testCase        string
 		keysToLoad      []string
@@ -117,7 +117,7 @@ func (st *CacheAbsentKeysLoaderSuite) TestWithAbsentKeysLoader() {
 	}
 }
 
-func (st *CacheAbsentKeysLoaderSuite) TestWithAbsentKeysLoader_ReturningSlice() {
+func (st *CacheAbsentKeysLoaderSuite) TestViaGet_ReturningSlice() {
 	keysToLoad := []string{faker.RandomString(5), faker.RandomString(5), faker.RandomString(5)}
 	var dst map[string]string
 	st.Require().NoError(
@@ -143,7 +143,7 @@ func (st *CacheAbsentKeysLoaderSuite) TestWithAbsentKeysLoader_ReturningSlice() 
 	st.Require().EqualValues(expected, dst, "unexpected loaded item")
 }
 
-func (st *CacheAbsentKeysLoaderSuite) TestWithAbsentKeysLoader_FailsWithoutWithItemToCacheKeyFn() {
+func (st *CacheAbsentKeysLoaderSuite) TestViaGet_FailsWithoutWithItemToCacheKeyFn() {
 	var dst map[string]string
 	cacheErr := st.cache.
 		WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
@@ -160,6 +160,46 @@ func (st *CacheAbsentKeysLoaderSuite) TestWithAbsentKeysLoader_FailsWithoutWithI
 		)
 	st.Require().Truef(errors.Is(cacheErr, cache.ErrItemToCacheKeyFnRequired), "ErrItemToCacheKeyFnRequired expected, %+v of type %T given", cacheErr, cacheErr)
 }
+
+func (st *CacheAbsentKeysLoaderSuite) TestViaHGetAll_DoesNotTriggerAbsentKeysLoader() {
+	// HGETALL command returns an empty list for absent keys, not nil
+	// So it's impossible to make a difference between an absent and an empty key
+	var dst map[string]string
+	st.Require().NoError(
+		st.cache.
+			WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
+				st.FailNow("This method must not be triggered")
+				return nil, errors.New("This method must not be returned")
+			}).
+			HGetAll(
+				st.ctx,
+				&dst,
+				faker.RandomString(5),
+			),
+		"No error expected",
+	)
+	st.Require().Empty(dst, "dst must be empty")
+}
+
+// func (st *CacheAbsentKeysLoaderSuite) TestViaHGetFieldsForKey() {
+//	var dst map[string]string
+//	st.Require().NoError(
+//		st.cache.
+//			WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
+//				st.T().Log(absentKeys)
+//				return nil, nil
+//			}).
+//			HGetFieldsForKey(
+//				st.ctx,
+//				&dst,
+//				faker.RandomString(5),
+//				faker.RandomString(7),
+//				faker.RandomString(7),
+//			),
+//		"No error expected",
+//	)
+//	st.Require().Empty(dst, "dst must be empty")
+//}
 
 func (st *CacheAbsentKeysLoaderSuite) keysToMap(keys ...string) map[string]string {
 	m := map[string]string{}

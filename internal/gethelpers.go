@@ -44,6 +44,7 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 		}
 
 		switch typedCmd := cmderr.(type) {
+		// returned for HMGET
 		case *redis.SliceCmd:
 			fields := typedCmd.Args()[2:]
 			for fieldIdx, val := range typedCmd.Val() {
@@ -56,19 +57,25 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 				case string:
 					decodeErr := decodeAndAddElementToContainer(opts, container, key, field, t)
 					if decodeErr != nil {
-						// @todo init and add KeyErr
-						// @todo unify with getFromCache from gethandlers
-						return decodeErr
+						keysToErrs[key+"|"+field] = decodeErr
 					}
+				default:
+					if t == nil {
+						if opts.AddCacheMissErrors {
+							keysToErrs[key+"|"+field] = ErrCacheMiss
+							cacheMissErrsCount++
+						}
+						continue
+					}
+					return errors.Errorf("Non-handled type returned: %T", t)
 				}
 			}
+		// returned for HGETALL
 		case *redis.StringStringMapCmd:
 			for field, val := range typedCmd.Val() {
 				decodeErr := decodeAndAddElementToContainer(opts, container, key, field, val)
 				if decodeErr != nil {
-					// @todo init and add KeyErr
-					// @todo unify with getFromCache from gethandlers
-					return decodeErr
+					keysToErrs[key+"|"+field] = decodeErr
 				}
 			}
 		case *redis.StringCmd:
