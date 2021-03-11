@@ -31,6 +31,10 @@ func (cd *Cache) WithTTL(ttl time.Duration) *Cache {
 	return &Cache{opt: opts}
 }
 
+// WithAbsentKeysLoader sets a function to load absent keysToLoad.
+// It returns a slice or a map of string keysToLoad to an item to cache.
+// The returned item might be something, which can be cached by a codec or
+// an instance of Item
 func (cd *Cache) WithAbsentKeysLoader(f func(absentKeys ...string) (interface{}, error)) *Cache {
 	opts := cd.opt
 	opts.AbsentKeysLoader = f
@@ -68,7 +72,7 @@ func (cd *Cache) HSetKV(ctx context.Context, key string, fieldValPairs ...interf
 	return internal.HSetKV(ctx, cd.opt, key, fieldValPairs...)
 }
 
-// Get gets the value for the given keys
+// Get gets the value for the given keysToLoad
 func (cd *Cache) Get(ctx context.Context, dst interface{}, keys ...string) error {
 	return internal.Get(ctx, cd.opt, dst, keys)
 }

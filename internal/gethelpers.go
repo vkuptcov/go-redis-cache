@@ -22,9 +22,6 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 
 	container, containerInitErr := containers.NewContainer(dst)
 	if containerInitErr != nil {
-		if errors.Is(containerInitErr, containers.ErrNonContainerType) {
-			return unmarshalSingleElement(opts, cmds, dst)
-		}
 		return containerInitErr
 	}
 	container.InitWithSize(len(cmds))
@@ -47,6 +44,7 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 		}
 
 		switch typedCmd := cmderr.(type) {
+		// returned for HMGET
 		case *redis.SliceCmd:
 			fields := typedCmd.Args()[2:]
 			for fieldIdx, val := range typedCmd.Val() {
@@ -59,19 +57,25 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 				case string:
 					decodeErr := decodeAndAddElementToContainer(opts, container, key, field, t)
 					if decodeErr != nil {
-						// @todo init and add KeyErr
-						// @todo unify with getFromCache from gethandlers
-						return decodeErr
+						keysToErrs[key+"|"+field] = decodeErr
 					}
+				default:
+					if t == nil {
+						if opts.AddCacheMissErrors {
+							keysToErrs[key+"|"+field] = ErrCacheMiss
+							cacheMissErrsCount++
+						}
+						continue
+					}
+					return errors.Errorf("Non-handled type returned: %T", t)
 				}
 			}
+		// returned for HGETALL
 		case *redis.StringStringMapCmd:
 			for field, val := range typedCmd.Val() {
 				decodeErr := decodeAndAddElementToContainer(opts, container, key, field, val)
 				if decodeErr != nil {
-					// @todo init and add KeyErr
-					// @todo unify with getFromCache from gethandlers
-					return decodeErr
+					keysToErrs[key+"|"+field] = decodeErr
 				}
 			}
 		case *redis.StringCmd:
@@ -91,27 +95,4 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 		}
 	}
 	return byKeysErr
-}
-
-func unmarshalSingleElement(opts Options, cmds []redis.Cmder, dst interface{}) error {
-	if len(cmds) > 1 {
-		return errors.New("Only single element expected")
-	}
-	cmd := cmds[0]
-	key, _ := cmd.Args()[1].(string)
-	switch {
-	case cmd.Err() == nil:
-		if strCmd, ok := cmd.(*redis.StringCmd); ok {
-			return opts.Marshaller.Unmarshal([]byte(strCmd.Val()), dst)
-		} else {
-			return errors.Errorf("*redis.StringCmd expected for key `%s`, %T received", key, cmd)
-		}
-	case errors.Is(cmd.Err(), redis.Nil):
-		if opts.AddCacheMissErrors {
-			return ErrCacheMiss
-		}
-	default:
-		return cmd.Err()
-	}
-	return nil
 }

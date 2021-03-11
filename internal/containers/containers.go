@@ -6,10 +6,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	ErrNonContainerType = errors.New("dst must be a map or a slice")
-)
-
 type Container interface {
 	DstEl() interface{}
 	AddElementWithSubkey(key, subkey string, value interface{})
@@ -80,6 +76,25 @@ func (s sliceContainer) InitWithSize(size int) {
 	}
 }
 
+type singleElement struct {
+	dst             interface{}
+	assignableValue reflect.Value
+}
+
+func (s singleElement) DstEl() interface{} {
+	return s.dst
+}
+
+func (s singleElement) AddElementWithSubkey(_, _ string, value interface{}) {
+	s.AddElement("", value)
+}
+
+func (s singleElement) AddElement(_ string, value interface{}) {
+	s.assignableValue.Set(reflect.Indirect(reflect.ValueOf(value)))
+}
+
+func (s singleElement) InitWithSize(_ int) {}
+
 func NewContainer(dst interface{}) (Container, error) {
 	reflectValue := reflect.Indirect(reflect.ValueOf(dst))
 	var result Container
@@ -107,7 +122,10 @@ func NewContainer(dst interface{}) (Container, error) {
 		base.cntType = reflectValue.Type()
 		result = sliceContainer{baseContainer: base}
 	default:
-		return nil, errors.Wrapf(ErrNonContainerType, "dst must be a map or a slice instead of %v", reflectValue.Type())
+		return singleElement{
+			assignableValue: base.assignableValue,
+			dst:             dst,
+		}, nil
 	}
 	base.elementType = base.cntType.Elem()
 	if base.elementType.Kind() == reflect.Ptr {
@@ -120,3 +138,4 @@ func NewContainer(dst interface{}) (Container, error) {
 
 var _ Container = mapContainer{}
 var _ Container = sliceContainer{}
+var _ Container = singleElement{}

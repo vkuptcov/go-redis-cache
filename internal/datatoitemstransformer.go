@@ -6,21 +6,28 @@ import (
 	"github.com/pkg/errors"
 )
 
-func newDataTransformer(data interface{}, itemToCacheKeyFn func(it interface{}) (key, field string)) interface {
+func newDataTransformer(absentKeys []string, data interface{}, itemToCacheKeyFn func(it interface{}) (key, field string)) (interface {
 	getItems() ([]*Item, error)
-} {
+},
+	error,
+) {
 	v := reflect.ValueOf(data)
 	switch kind := v.Kind(); kind {
 	case reflect.Map:
-		return mapTransformer{v}
+		return mapTransformer{v}, nil
 	case reflect.Slice:
 		return sliceTransformer{
 			v:           v,
 			itemToKeyFn: itemToCacheKeyFn,
-		}
+		}, nil
 	default:
-		// @todo support single element here
-		panic(errors.Wrapf(ErrWrongLoadFnType, "Unsupported kind %q", kind))
+		if len(absentKeys) != 1 {
+			return nil, errors.Wrapf(ErrWrongLoadFnType, "Unsupported kind %q with %d keys", kind, len(absentKeys))
+		}
+		return singleElementTransformer{
+			key:  absentKeys[0],
+			data: data,
+		}, nil
 	}
 }
 
@@ -72,6 +79,9 @@ func (st sliceTransformer) getItems() ([]*Item, error) {
 		if item, ok := val.(*Item); ok {
 			items = append(items, item)
 		} else {
+			if st.itemToKeyFn == nil {
+				return items, errors.WithStack(ErrItemToCacheKeyFnRequired)
+			}
 			key, field := st.itemToKeyFn(val)
 			items = append(items, &Item{
 				Key:   key,
@@ -81,4 +91,21 @@ func (st sliceTransformer) getItems() ([]*Item, error) {
 		}
 	}
 	return items, nil
+}
+
+type singleElementTransformer struct {
+	key  string
+	data interface{}
+}
+
+func (st singleElementTransformer) getItems() ([]*Item, error) {
+	if item, ok := st.data.(*Item); ok {
+		return []*Item{item}, nil
+	}
+	return []*Item{
+		{
+			Key:   st.key,
+			Value: st.data,
+		},
+	}, nil
 }

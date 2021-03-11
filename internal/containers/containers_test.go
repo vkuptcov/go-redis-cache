@@ -4,14 +4,14 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/suite"
 	"syreclabs.com/go/faker"
 )
 
 type ContainersSuite struct {
-	expectedSliceContainer sliceContainer
-	expectedMapContainer   mapContainer
+	expectedSliceContainer  sliceContainer
+	expectedMapContainer    mapContainer
+	expectedSingleContainer singleElement
 	suite.Suite
 }
 
@@ -43,8 +43,9 @@ func (st *ContainersSuite) TestContainerCreation() {
 	})
 	st.Run("create a container for non-slice or map must fail", func() {
 		var dst string
-		_, err := NewContainer(&dst)
-		st.Require().True(errors.Is(err, ErrNonContainerType), "ErrNonContainerType expected, %+v given", err)
+		c, err := NewContainer(&dst)
+		st.Require().NoError(err, "No error expected on container creation")
+		st.Require().IsType(st.expectedSingleContainer, c)
 	})
 }
 
@@ -112,6 +113,24 @@ func (st *ContainersSuite) TestAddElementsIntoMapContainer_DstDefinedAsInterface
 			st.Require().EqualValues(expectedMap, dst)
 		})
 	}
+}
+
+func (st *ContainersSuite) TestAddElementsIntoSingleContainer_DstDefinedAsString() {
+	var dst string
+	c, err := NewContainer(&dst)
+	st.Require().NoError(err, "No error expected on container creation")
+	v := faker.Lorem().Sentence(2)
+	c.AddElement(faker.RandomString(5), &v)
+	st.Require().EqualValues(v, dst)
+}
+
+func (st *ContainersSuite) TestAddElementsIntoSingleContainer_DstDefinedAsInterface() {
+	var dst interface{} = ""
+	c, err := NewContainer(&dst)
+	st.Require().NoError(err, "No error expected on container creation")
+	v := faker.Lorem().Sentence(2)
+	c.AddElement(faker.RandomString(5), &v)
+	st.Require().EqualValues(v, dst)
 }
 
 func TestContainersSuite(t *testing.T) {

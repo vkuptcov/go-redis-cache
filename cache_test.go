@@ -16,6 +16,43 @@ import (
 	"github.com/vkuptcov/go-redis-cache/v8/internal/marshaller"
 )
 
+type BaseCacheSuite struct {
+	suite.Suite
+	client     *redis.Client
+	cache      *cache.Cache
+	marshaller cache.Marshaller
+	ctx        context.Context
+}
+
+func (st *BaseCacheSuite) SetupSuite() {
+	st.client = redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+
+	st.ctx = context.Background()
+
+	st.marshaller = marshaller.NewMarshaller(&marshaller.JSONMarshaller{})
+
+	st.cache = cache.NewCache(cache.Options{
+		Redis:      st.client,
+		DefaultTTL: 0,
+		Marshaller: st.marshaller,
+	})
+}
+
+func (st *BaseCacheSuite) generateKeyValPairs() (data commonTestData) {
+	data.keyVals = map[string]string{}
+	for i := 0; i < 3; i++ {
+		key := faker.RandomString(5)
+		val := faker.Lorem().Word()
+		data.keyValPairs = append(data.keyValPairs, key, val)
+		data.keys = append(data.keys, key)
+		data.vals = append(data.vals, val)
+		data.keyVals[key] = val
+	}
+	return data
+}
+
 type CacheSuite struct {
 	suite.Suite
 	client         *redis.Client
@@ -157,7 +194,7 @@ func (st *CacheSuite) TestGet() {
 		st.Require().Empty(dst, "Dst should remain unchanged")
 	})
 
-	st.Run("get all keys into a slice", func() {
+	st.Run("get all keysToLoad into a slice", func() {
 		var dst []string
 		st.Require().NoError(
 			st.cache.Get(ctx, &dst, st.commonTestData.keys...),
@@ -175,7 +212,7 @@ func (st *CacheSuite) TestGet() {
 		st.Require().EqualValues(st.commonTestData.vals[0:1], dst)
 	})
 
-	st.Run("get all keys into a map", func() {
+	st.Run("get all keysToLoad into a map", func() {
 		var dst map[string]string
 		st.Require().NoError(
 			st.cache.Get(ctx, &dst, st.commonTestData.keys...),
@@ -267,7 +304,7 @@ func (st *CacheSuite) TestGet_IntoContainer_WithoutMapKeyModification() {
 
 				expectedData := dstData.expectedData()
 
-				st.Require().NoError(getErr, "No error expected on loading keys from cache")
+				st.Require().NoError(getErr, "No error expected on loading keysToLoad from cache")
 				checkDst(st.T(), expectedData, dst, "result data should be identical")
 				st.checkKeysPresenceInCache()
 			})
@@ -300,9 +337,9 @@ func (st *CacheSuite) TestGet_IntoMap_WithMapKeyModification() {
 			st.commonTestData.keys...,
 		)
 
-	st.Require().NoError(getErr, "No error expected on loading keys from cache")
+	st.Require().NoError(getErr, "No error expected on loading keysToLoad from cache")
 	checkDst(st.T(), expectedData, dst, "result data should be identical")
-	// check the data is cached by non-changed keys
+	// check the data is cached by non-changed keysToLoad
 	st.checkKeysPresenceInCache()
 }
 
