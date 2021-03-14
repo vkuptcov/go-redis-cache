@@ -6,7 +6,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
 
-	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
 	"github.com/vkuptcov/go-redis-cache/v8/internal/containers"
 )
 
@@ -27,19 +26,20 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 	}
 	container.InitWithSize(len(cmds))
 
-	keysToErrs := map[string]error{}
-	var cacheMissErrsCount int
+	byKeysErr := &KeyErr{
+		KeysToErrs:         map[string]error{},
+		CacheMissErrsCount: 0,
+	}
 
 	for _, cmderr := range cmds {
 		key := cmderr.Args()[1].(string)
 		if cmderr.Err() != nil {
 			if errors.Is(cmderr.Err(), redis.Nil) {
 				if opts.AddCacheMissErrors {
-					keysToErrs[key] = ErrCacheMiss
-					cacheMissErrsCount++
+					byKeysErr.AddErrorForKey(key, ErrCacheMiss)
 				}
 			} else {
-				keysToErrs[key] = cmderr.Err()
+				byKeysErr.AddErrorForKey(key, cmderr.Err())
 			}
 			continue
 		}
@@ -58,13 +58,12 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 				case string:
 					decodeErr := decodeAndAddElementToContainer(opts, container, key, field, t)
 					if decodeErr != nil {
-						keysToErrs[cachekeys.KeyWithField(key, field)] = decodeErr
+						byKeysErr.AddErrorForKeyAndField(key, field, decodeErr)
 					}
 				default:
 					if t == nil {
 						if opts.AddCacheMissErrors {
-							keysToErrs[cachekeys.KeyWithField(key, field)] = ErrCacheMiss
-							cacheMissErrsCount++
+							byKeysErr.AddErrorForKeyAndField(key, field, ErrCacheMiss)
 						}
 						continue
 					}
@@ -76,22 +75,22 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 			for field, val := range typedCmd.Val() {
 				decodeErr := decodeAndAddElementToContainer(opts, container, key, field, val)
 				if decodeErr != nil {
-					keysToErrs[cachekeys.KeyWithField(key, field)] = decodeErr
+					byKeysErr.AddErrorForKeyAndField(key, field, decodeErr)
 				}
+			}
+			// HGETALL doesn't return redis.Nil error for absent keys and returns just an empty list
+			if len(typedCmd.Val()) == 0 {
+				byKeysErr.AddErrorForKey(key, ErrCacheMiss)
 			}
 		case *redis.StringCmd:
 			decodeErr := decodeAndAddElementToContainer(opts, container, key, "", typedCmd.Val())
 			if decodeErr != nil {
-				keysToErrs[key] = decodeErr
+				byKeysErr.AddErrorForKey(key, decodeErr)
 			}
 		}
 	}
-	var byKeysErr error
-	if len(keysToErrs) > 0 {
-		byKeysErr = &KeyErr{
-			KeysToErrs:         keysToErrs,
-			CacheMissErrsCount: cacheMissErrsCount,
-		}
+	if len(byKeysErr.KeysToErrs) > 0 {
+		return byKeysErr
 	}
-	return byKeysErr
+	return nil
 }

@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+
+	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
 )
 
 var ErrCacheMiss = errors.New("cache: key is missing")
@@ -23,4 +25,18 @@ func (k *KeyErr) Error() string {
 
 func (k *KeyErr) HasNonCacheMissErrs() bool {
 	return len(k.KeysToErrs) != k.CacheMissErrsCount
+}
+
+func (k *KeyErr) AddErrorForKey(key string, err error) {
+	k.KeysToErrs[key] = err
+	if errors.Is(err, ErrCacheMiss) {
+		k.CacheMissErrsCount++
+	}
+}
+
+func (k *KeyErr) AddErrorForKeyAndField(key, field string, err error) {
+	k.KeysToErrs[cachekeys.KeyWithField(key, field)] = err
+	if errors.Is(err, ErrCacheMiss) {
+		k.CacheMissErrsCount++
+	}
 }

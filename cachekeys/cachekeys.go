@@ -12,6 +12,7 @@ func CreateKey(prefix, firstKey string, compounds ...string) string {
 }
 
 func UnpackKeyWithPrefix(key string, parts ...*string) {
+	key = strings.ReplaceAll(key, fieldSeparator, keysSeparator)
 	for idx, s := range strings.Split(key, keysSeparator) {
 		if idx >= len(parts) {
 			break

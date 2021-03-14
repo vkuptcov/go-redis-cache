@@ -18,6 +18,11 @@ var upackKeyData = []struct {
 		testCase: "all params are present",
 	},
 	{
+		key:      "prefix|a|b|c/field",
+		expected: []string{"prefix", "a", "b", "c", "field"},
+		testCase: "all params with a field are present",
+	},
+	{
 		key:      "prefix|a|b",
 		expected: []string{"prefix", "a", "b", "", ""},
 		testCase: "more params then the keys are provided",
@@ -27,6 +32,12 @@ var upackKeyData = []struct {
 		expected: []string{"prefix", "a", "b"},
 		testCase: "less params then the keys are provided",
 	},
+	// @todo implement it
+	// {
+	//	key:      "prefix|a|b/shouldNotBeInterpretedAsAField|c/field",
+	//	expected: []string{"prefix", "a", "b/shouldNotBeInterpretedAsAField", "c", "field"},
+	//	testCase: "all params with a field are present",
+	// },
 	{
 		key:      "prefix",
 		expected: []string{"prefix"},
@@ -46,7 +57,7 @@ func TestUnpackKeyWithPrefix(t *testing.T) {
 			key := td.key
 			strs, pointers := makeStringsAndPointers(len(td.expected))
 			UnpackKeyWithPrefix(key, pointers...)
-			require.Equal(strs, td.expected)
+			require.Equal(td.expected, strs)
 		})
 	}
 }
