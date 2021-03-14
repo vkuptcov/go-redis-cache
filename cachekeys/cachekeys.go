@@ -31,3 +31,17 @@ func UnpackKey(key string, parts ...*string) {
 func KeyWithField(key, field string) string {
 	return key + fieldSeparator + field
 }
+
+func HasFieldInKey(key string) bool {
+	return strings.Contains(key, fieldSeparator)
+}
+
+func SplitKeyAndField(s string) (key, field string) {
+	lastIndex := strings.LastIndex(s, fieldSeparator)
+	key = s
+	if lastIndex >= 0 {
+		key = s[:lastIndex]
+		field = s[lastIndex+1:]
+	}
+	return key, field
+}

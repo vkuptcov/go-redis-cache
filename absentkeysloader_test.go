@@ -168,7 +168,6 @@ func (st *CacheAbsentKeysLoaderSuite) TestViaHGetFieldsForKey() {
 		key          string
 		fields       []string
 		absentLoader func(t *testing.T, absentKeys ...string) interface{}
-		expected     func(key string, fields ...string) map[string]string
 	}{
 		{
 			testCase: "returns a slice of items",
@@ -191,11 +190,21 @@ func (st *CacheAbsentKeysLoaderSuite) TestViaHGetFieldsForKey() {
 				}
 				return items
 			},
-			expected: func(key string, fields ...string) map[string]string {
+		},
+		{
+			testCase: "returns a map",
+			key:      faker.RandomString(5),
+			fields: []string{
+				faker.RandomString(7),
+				faker.RandomString(7),
+			},
+			absentLoader: func(t *testing.T, absentKeys ...string) interface{} {
+				require.New(t).Len(absentKeys, 2, "2 keys expected")
 				m := map[string]string{}
-				for _, f := range fields {
-					k := cachekeys.KeyWithField(key, f)
-					m[k] = st.keyToElement(k)
+				for _, ak := range absentKeys {
+					var k, f string
+					cachekeys.UnpackKeyWithPrefix(ak, &k, &f)
+					m[ak] = st.keyToElement(ak)
 				}
 				return m
 			},
@@ -217,7 +226,25 @@ func (st *CacheAbsentKeysLoaderSuite) TestViaHGetFieldsForKey() {
 					),
 				"No error expected",
 			)
-			checkDst(st.T(), tc.expected(tc.key, tc.fields...), dst, "Unmatched dst")
+			expected := map[string]string{}
+			for _, f := range tc.fields {
+				k := cachekeys.KeyWithField(tc.key, f)
+				expected[k] = st.keyToElement(k)
+			}
+			checkDst(st.T(), expected, dst, "Unmatched dst")
+
+			var cachedDst map[string]string
+			st.Require().NoError(
+				st.cache.
+					HGetFieldsForKey(
+						st.ctx,
+						&cachedDst,
+						tc.key,
+						tc.fields...,
+					),
+				"No error expected on getting cached object",
+			)
+			checkDst(st.T(), expected, cachedDst, "Unmatched cachedDst")
 		})
 	}
 }

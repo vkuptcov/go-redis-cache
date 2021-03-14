@@ -4,6 +4,8 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
+
+	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
 )
 
 func newDataTransformer(absentKeys []string, data interface{}, itemToCacheKeyFn func(it interface{}) (key, field string)) (interface {
@@ -53,9 +55,11 @@ func (mt mapTransformer) getItems() ([]*Item, error) {
 			// @todo add possibility to use the key from the map
 			items = append(items, item)
 		} else {
-			key := iter.Key().String()
+			mapKey := iter.Key().String()
+			key, field := cachekeys.SplitKeyAndField(mapKey)
 			items = append(items, &Item{
 				Key:   key,
+				Field: field,
 				Value: val,
 			})
 		}

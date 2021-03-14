@@ -106,6 +106,45 @@ func TestUnpackKeyWithPrefix_IgnoringPrefix(t *testing.T) {
 	require.Equal(s, "a")
 }
 
+func TestSplitKeyAndField(t *testing.T) {
+	testCases := []struct {
+		testCase      string
+		keyAndField   string
+		expectedKey   string
+		expectedField string
+	}{
+		{
+			testCase:      "both key and field are present",
+			keyAndField:   "key|part1|part2/field",
+			expectedKey:   "key|part1|part2",
+			expectedField: "field",
+		},
+		{
+			testCase:    "only key is present",
+			keyAndField: "key|part1|part2",
+			expectedKey: "key|part1|part2",
+		},
+		{
+			testCase:    "field is empty",
+			keyAndField: "key|part1|part2/",
+			expectedKey: "key|part1|part2",
+		},
+		{
+			testCase:      "key is empty",
+			keyAndField:   "/onlyfield",
+			expectedKey:   "",
+			expectedField: "onlyfield",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.testCase, func(t *testing.T) {
+			key, field := SplitKeyAndField(tc.keyAndField)
+			requireLib.Equal(t, tc.expectedKey, key, "unexpected key")
+			requireLib.Equal(t, tc.expectedField, field, "unexpected field")
+		})
+	}
+}
+
 func makeStringsAndPointers(length int) (strs []string, pointers []*string) {
 	strs = make([]string, length)
 	pointers = make([]*string, length)
