@@ -4,6 +4,8 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
+
+	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
 )
 
 type Container interface {
@@ -42,7 +44,7 @@ type mapContainer struct {
 
 func (m mapContainer) AddElementWithSubkey(key, subkey string, value interface{}) {
 	if subkey != "" {
-		key += "-" + subkey
+		key = cachekeys.KeyWithField(key, subkey)
 	}
 	m.AddElement(key, value)
 }

@@ -10,6 +10,7 @@ import (
 	"syreclabs.com/go/faker"
 
 	cache "github.com/vkuptcov/go-redis-cache/v8"
+	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
 	"github.com/vkuptcov/go-redis-cache/v8/internal/marshaller"
 )
 
@@ -49,7 +50,7 @@ func (st *CacheHashSuite) SetupTest() {
 			val := faker.Lorem().Word()
 			fieldValPairs = append(fieldValPairs, field, val)
 			st.expectedSlice = append(st.expectedSlice, val)
-			st.expectedMap[k+"-"+field] = val
+			st.expectedMap[cachekeys.KeyWithField(k, field)] = val
 			st.keysToFields[k] = append(st.keysToFields[k], field)
 		}
 		hsetErr := st.cache.HSetKV(context.Background(), k, fieldValPairs...)
