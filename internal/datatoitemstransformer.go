@@ -8,28 +8,23 @@ import (
 	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
 )
 
-func newDataTransformer(absentKeys []string, data interface{}, itemToCacheKeyFn func(it interface{}) (key, field string)) (interface {
+func newDataTransformer(absentKeys []string, data interface{}, itemToCacheKeyFn func(it interface{}) (key, field string)) interface {
 	getItems() ([]*Item, error)
-},
-	error,
-) {
+} {
 	v := reflect.ValueOf(data)
 	switch kind := v.Kind(); kind {
 	case reflect.Map:
-		return mapTransformer{v}, nil
+		return mapTransformer{v}
 	case reflect.Slice:
 		return sliceTransformer{
 			v:           v,
 			itemToKeyFn: itemToCacheKeyFn,
-		}, nil
-	default:
-		if len(absentKeys) != 1 {
-			return nil, errors.Wrapf(ErrWrongLoadFnType, "Unsupported kind %q with %d keys", kind, len(absentKeys))
 		}
+	default:
 		return singleElementTransformer{
-			key:  absentKeys[0],
+			keys: absentKeys,
 			data: data,
-		}, nil
+		}
 	}
 }
 
@@ -98,17 +93,28 @@ func (st sliceTransformer) getItems() ([]*Item, error) {
 }
 
 type singleElementTransformer struct {
-	key  string
-	data interface{}
+	keys        []string
+	data        interface{}
+	itemToKeyFn func(it interface{}) (key, field string)
 }
 
 func (st singleElementTransformer) getItems() ([]*Item, error) {
+	if len(st.keys) != 1 {
+		return nil, errors.Wrapf(ErrWrongLoadFnType, "Unsupported loaded element %T with %d keys", st.data, len(st.keys))
+	}
 	if item, ok := st.data.(*Item); ok {
 		return []*Item{item}, nil
 	}
+	var key, field string
+	if st.itemToKeyFn != nil {
+		key, field = st.itemToKeyFn(st.data)
+	} else {
+		key, field = cachekeys.SplitKeyAndField(st.keys[0])
+	}
 	return []*Item{
 		{
-			Key:   st.key,
+			Key:   key,
+			Field: field,
 			Value: st.data,
 		},
 	}, nil

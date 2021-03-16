@@ -170,6 +170,34 @@ func (st *CacheAbsentKeysLoaderSuite) TestViaHGetFieldsForKey() {
 		absentLoader func(t *testing.T, absentKeys ...string) interface{}
 	}{
 		{
+			testCase: "returns a single element",
+			key:      faker.RandomString(5),
+			fields: []string{
+				faker.RandomString(7),
+			},
+			absentLoader: func(t *testing.T, absentKeys ...string) interface{} {
+				require.New(t).Len(absentKeys, 1, "1 key expected")
+				return st.keyToElement(absentKeys[0])
+			},
+		},
+		{
+			testCase: "returns a single Item",
+			key:      faker.RandomString(5),
+			fields: []string{
+				faker.RandomString(7),
+			},
+			absentLoader: func(t *testing.T, absentKeys ...string) interface{} {
+				require.New(t).Len(absentKeys, 1, "1 key expected")
+				var k, f string
+				cachekeys.UnpackKeyWithPrefix(absentKeys[0], &k, &f)
+				return &cache.Item{
+					Key:   k,
+					Field: f,
+					Value: st.keyToElement(absentKeys[0]),
+				}
+			},
+		},
+		{
 			testCase: "returns a slice of items",
 			key:      faker.RandomString(5),
 			fields: []string{
