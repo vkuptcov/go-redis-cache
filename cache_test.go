@@ -40,6 +40,32 @@ func (st *BaseCacheSuite) SetupSuite() {
 	})
 }
 
+func (st *BaseCacheSuite) keysToMap(keys ...string) map[string]string {
+	m := map[string]string{}
+	for _, k := range keys {
+		m[k] = st.keyToElement(k)
+	}
+	return m
+}
+
+func (st *BaseCacheSuite) keyToElement(k string) string {
+	return k + "-element"
+}
+
+func (st *BaseCacheSuite) checkElementsInCache(expected map[string]string) {
+	st.T().Helper()
+	var keys []string
+	for k := range expected {
+		keys = append(keys, k)
+	}
+	var dst map[string]string
+	st.Require().NoError(
+		st.cache.Get(context.Background(), &dst, keys...),
+		"No error expected on checking keysToLoad in cache",
+	)
+	checkDst(st.T(), expected, dst, "difference in cache found")
+}
+
 func (st *BaseCacheSuite) generateKeyValPairs() (data commonTestData) {
 	data.keyVals = map[string]string{}
 	for i := 0; i < 3; i++ {

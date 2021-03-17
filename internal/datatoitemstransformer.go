@@ -14,7 +14,10 @@ func newDataTransformer(absentKeys []string, data interface{}, itemToCacheKeyFn 
 	v := reflect.ValueOf(data)
 	switch kind := v.Kind(); kind {
 	case reflect.Map:
-		return mapTransformer{v}
+		return mapTransformer{
+			v:           v,
+			itemToKeyFn: itemToCacheKeyFn,
+		}
 	case reflect.Slice:
 		return sliceTransformer{
 			v:           v,
@@ -22,14 +25,16 @@ func newDataTransformer(absentKeys []string, data interface{}, itemToCacheKeyFn 
 		}
 	default:
 		return singleElementTransformer{
-			keys: absentKeys,
-			data: data,
+			keys:        absentKeys,
+			data:        data,
+			itemToKeyFn: itemToCacheKeyFn,
 		}
 	}
 }
 
 type mapTransformer struct {
-	v reflect.Value
+	v           reflect.Value
+	itemToKeyFn func(it interface{}) (key, field string)
 }
 
 func (mt mapTransformer) getItems() ([]*Item, error) {
@@ -50,8 +55,13 @@ func (mt mapTransformer) getItems() ([]*Item, error) {
 			// @todo add possibility to use the key from the map
 			items = append(items, item)
 		} else {
-			mapKey := iter.Key().String()
-			key, field := cachekeys.SplitKeyAndField(mapKey)
+			var key, field string
+			if mt.itemToKeyFn != nil {
+				key, field = mt.itemToKeyFn(val)
+			} else {
+				mapKey := iter.Key().String()
+				key, field = cachekeys.SplitKeyAndField(mapKey)
+			}
 			items = append(items, &Item{
 				Key:   key,
 				Field: field,

@@ -1,7 +1,6 @@
 package cache_test
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -275,32 +274,6 @@ func (st *CacheAbsentKeysLoaderSuite) TestViaHGetFieldsForKey() {
 			checkDst(st.T(), expected, cachedDst, "Unmatched cachedDst")
 		})
 	}
-}
-
-func (st *CacheAbsentKeysLoaderSuite) keysToMap(keys ...string) map[string]string {
-	m := map[string]string{}
-	for _, k := range keys {
-		m[k] = st.keyToElement(k)
-	}
-	return m
-}
-
-func (st *CacheAbsentKeysLoaderSuite) keyToElement(k string) string {
-	return k + "-element"
-}
-
-func (st *CacheAbsentKeysLoaderSuite) checkElementsInCache(expected map[string]string) {
-	st.T().Helper()
-	var keys []string
-	for k := range expected {
-		keys = append(keys, k)
-	}
-	var dst map[string]string
-	st.Require().NoError(
-		st.cache.Get(context.Background(), &dst, keys...),
-		"No error expected on checking keysToLoad in cache",
-	)
-	checkDst(st.T(), expected, dst, "difference in cache found")
 }
 
 func TestCacheAbsentKeysLoaderSuite(t *testing.T) {
