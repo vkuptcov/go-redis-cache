@@ -175,6 +175,7 @@ func (st *CacheAbsentKeysLoaderSuite) TestViaHGetFieldsForKey() {
 				faker.RandomString(7),
 			},
 			absentLoader: func(t *testing.T, absentKeys ...string) interface{} {
+				t.Helper()
 				require.New(t).Len(absentKeys, 1, "1 key expected")
 				return st.keyToElement(absentKeys[0])
 			},
@@ -186,6 +187,7 @@ func (st *CacheAbsentKeysLoaderSuite) TestViaHGetFieldsForKey() {
 				faker.RandomString(7),
 			},
 			absentLoader: func(t *testing.T, absentKeys ...string) interface{} {
+				t.Helper()
 				require.New(t).Len(absentKeys, 1, "1 key expected")
 				var k, f string
 				cachekeys.UnpackKeyWithPrefix(absentKeys[0], &k, &f)
@@ -204,6 +206,7 @@ func (st *CacheAbsentKeysLoaderSuite) TestViaHGetFieldsForKey() {
 				faker.RandomString(7),
 			},
 			absentLoader: func(t *testing.T, absentKeys ...string) interface{} {
+				t.Helper()
 				require.New(t).Len(absentKeys, 2, "2 keys expected")
 				var items []*cache.Item
 				for _, ak := range absentKeys {
@@ -226,6 +229,7 @@ func (st *CacheAbsentKeysLoaderSuite) TestViaHGetFieldsForKey() {
 				faker.RandomString(7),
 			},
 			absentLoader: func(t *testing.T, absentKeys ...string) interface{} {
+				t.Helper()
 				require.New(t).Len(absentKeys, 2, "2 keys expected")
 				m := map[string]string{}
 				for _, ak := range absentKeys {
