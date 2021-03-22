@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pkg/errors"
 	requireLib "github.com/stretchr/testify/require"
 
 	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
@@ -136,6 +137,48 @@ func TestDataTransformer_GetItems(t *testing.T) {
 			require := requireLib.New(t)
 			require.NoError(getErr, "No errors expected on getting items")
 			require.ElementsMatch(tc.expectedItems, items)
+		})
+	}
+}
+
+func TestDataTransformer_GetItems_Negative(t *testing.T) {
+	testCases := []struct {
+		testCase         string
+		keys             []string
+		data             interface{}
+		itemToCacheKeyFn func(it interface{}) (key, field string)
+
+		expectedErr error
+	}{
+		{
+			testCase: "several keys provided but only one element returned",
+			keys:     []string{"key1", "key2"},
+			data:     "result",
+
+			expectedErr: ErrWrongLoadFnType,
+		},
+		{
+			testCase: "slice returned without item to cache key function",
+			keys:     []string{"key1", "key2"},
+			data:     []string{"val1", "val2"},
+
+			expectedErr: ErrItemToCacheKeyFnRequired,
+		},
+		{
+			testCase: "map key is not a string",
+			keys:     []string{"key1", "key2"},
+			data:     map[int]string{1: "val1", 2: "val2"},
+
+			expectedErr: ErrNonStringKey,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.testCase, func(t *testing.T) {
+			transformer := newDataTransformer(tc.keys, tc.data, tc.itemToCacheKeyFn)
+			items, err := transformer.getItems()
+			require := requireLib.New(t)
+			require.Truef(errors.Is(err, tc.expectedErr), "%+v error expected, %+v given", tc.expectedErr, err)
+			require.Len(items, 0, "items must be empty")
 		})
 	}
 }

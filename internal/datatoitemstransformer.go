@@ -45,7 +45,7 @@ func (mt mapTransformer) getItems() ([]*Item, error) {
 	mapType := v.Type()
 	keyType := mapType.Key()
 	if keyType.Kind() != reflect.String {
-		return nil, errors.Errorf("dst key type must be a string, %v given", keyType.Kind())
+		return nil, errors.Wrapf(ErrNonStringKey, "dst key type must be a string, %v given", keyType.Kind())
 	}
 	iter := v.MapRange()
 	items := make([]*Item, 0, v.Len())
