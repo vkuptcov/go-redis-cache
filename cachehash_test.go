@@ -12,6 +12,7 @@ import (
 	cache "github.com/vkuptcov/go-redis-cache/v8"
 	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
 	"github.com/vkuptcov/go-redis-cache/v8/internal/marshaller"
+	"github.com/vkuptcov/go-redis-cache/v8/marshallers"
 )
 
 type CacheHashSuite struct {
@@ -33,7 +34,7 @@ func (st *CacheHashSuite) SetupSuite() {
 	st.cache = cache.NewCache(cache.Options{
 		Redis:      st.client,
 		DefaultTTL: 0,
-		Marshaller: marshaller.NewMarshaller(&marshaller.JSONMarshaller{}),
+		Marshaller: marshaller.NewMarshaller(&marshallers.JSONMarshaller{}),
 	})
 }
 

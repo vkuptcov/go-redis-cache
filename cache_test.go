@@ -14,6 +14,7 @@ import (
 
 	cache "github.com/vkuptcov/go-redis-cache/v8"
 	"github.com/vkuptcov/go-redis-cache/v8/internal/marshaller"
+	"github.com/vkuptcov/go-redis-cache/v8/marshallers"
 )
 
 type BaseCacheSuite struct {
@@ -31,7 +32,7 @@ func (st *BaseCacheSuite) SetupSuite() {
 
 	st.ctx = context.Background()
 
-	st.marshaller = marshaller.NewMarshaller(&marshaller.JSONMarshaller{})
+	st.marshaller = marshaller.NewMarshaller(&marshallers.JSONMarshaller{})
 
 	st.cache = cache.NewCache(cache.Options{
 		Redis:      st.client,
@@ -103,7 +104,7 @@ func (st *CacheSuite) SetupSuite() {
 	st.cache = cache.NewCache(cache.Options{
 		Redis:      st.client,
 		DefaultTTL: 0,
-		Marshaller: marshaller.NewMarshaller(&marshaller.JSONMarshaller{}),
+		Marshaller: marshaller.NewMarshaller(&marshallers.JSONMarshaller{}),
 	})
 }
 

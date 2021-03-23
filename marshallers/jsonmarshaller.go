@@ -1,4 +1,4 @@
-package marshaller
+package marshallers
 
 import (
 	"encoding/json"
