@@ -25,7 +25,7 @@ func RandomUser() *User {
 	return &User{
 		ID:         UserID(faker.RandomString(5)),
 		Name:       faker.Name().FirstName(),
-		Department: faker.Commerce().Department(),
+		Department: faker.Commerce().Department() + "_" + faker.RandomString(3),
 	}
 }
 

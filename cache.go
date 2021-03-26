@@ -76,6 +76,10 @@ func (cd *Cache) HSetKV(ctx context.Context, key string, fieldValPairs ...interf
 }
 
 // Get gets the value for the given keysToLoad
+// dst might be
+// 1. single element such as structure/number/string/etc
+// 2. a slice of single elements
+// 3. a map key to a single element
 func (cd *Cache) Get(ctx context.Context, dst interface{}, keys ...string) error {
 	return internal.Get(ctx, cd.opt, dst, keys)
 }

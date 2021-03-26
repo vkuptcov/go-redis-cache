@@ -1,6 +1,8 @@
 package cachekeys
 
-import "strings"
+import (
+	"strings"
+)
 
 const (
 	keysSeparator  = "|"
@@ -11,6 +13,13 @@ func CreateKey(prefix, firstKey string, compounds ...string) string {
 	return prefix + keysSeparator + firstKey + keysSeparator + strings.Join(compounds, keysSeparator)
 }
 
+// UnpackKey extracts parts from a key, with prefix.
+// E.g.
+// var prefix, userID string
+// UnpackKey("usr_by_id|123", &prefix, &userID)
+// writes
+// "usr_by_id" into the prefix var
+// "123" into the userID var
 func UnpackKeyWithPrefix(key string, parts ...*string) {
 	key = strings.ReplaceAll(key, fieldSeparator, keysSeparator)
 	for idx, s := range strings.Split(key, keysSeparator) {
@@ -23,6 +32,11 @@ func UnpackKeyWithPrefix(key string, parts ...*string) {
 	}
 }
 
+// UnpackKey extracts parts from a key, ignoring prefix.
+// E.g.
+// var userID string
+// UnpackKey("usr_by_id|123", &userID)
+// writes "123" into the userID
 func UnpackKey(key string, parts ...*string) {
 	prefixedSlice := append([]*string{nil}, parts...)
 	UnpackKeyWithPrefix(key, prefixedSlice...)
