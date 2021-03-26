@@ -11,10 +11,10 @@ type Cache struct {
 	opt Options
 }
 
-const defaultDuration = 1 * time.Hour
+const DefaultDuration = 1 * time.Hour
 
 func NewCache(opt Options) *Cache {
-	cacheDuration := defaultDuration
+	cacheDuration := DefaultDuration
 	if opt.DefaultTTL >= 1*time.Second {
 		cacheDuration = opt.DefaultTTL
 	}
@@ -25,6 +25,9 @@ func NewCache(opt Options) *Cache {
 	}
 }
 
+// WithTTL overrides the TTL which is set on Cache creation via cache.Options
+// If it is in the [0, 1s) than the value from cache.Options will be used
+// If it is less than 0, than cached values will be stored without an explicit TTL
 func (cd *Cache) WithTTL(ttl time.Duration) *Cache {
 	opts := cd.opt
 	opts.DefaultTTL = ttl
