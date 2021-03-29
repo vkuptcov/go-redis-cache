@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/suite"
 	"syreclabs.com/go/faker"
 
@@ -278,46 +277,6 @@ func (st *SaveUserSuite) TestSaveUser_WithCustomTTL() {
 
 			st.Require().InDelta(tc.expectedTTL, ttl, float64(500*time.Millisecond), "Unexpected ttl")
 		})
-	}
-}
-
-func (st *SaveUserSuite) verifyUserPresenceInCache(users ...*User) {
-	st.T().Helper()
-	var dst []*User
-	var keys []string
-	for _, u := range users {
-		keys = append(keys, userByIDCacheKey(u.ID))
-	}
-	st.Require().NoError(
-		st.cache.Get(st.ctx, &dst, keys...),
-		"get user verification err",
-	)
-	st.Require().ElementsMatch(users, dst, "Unmatched users")
-}
-
-func (st *SaveUserSuite) verifyUserAbsenceInCache(user *User) {
-	st.T().Helper()
-	var dst *User
-
-	err := st.cache.
-		AddCacheMissErrors().
-		Get(st.ctx, &dst, userByIDCacheKey(user.ID))
-
-	var keyErr *cache.KeyErr
-	st.Require().True(errors.As(err, &keyErr), "KeyErr expected")
-
-	st.Require().Nil(dst, "Dst must be nil")
-}
-
-func (st *SaveUserSuite) verifyUserByDepartmentPresenceInCache(users ...*User) {
-	st.T().Helper()
-	for _, u := range users {
-		var dst *User
-		st.Require().NoError(
-			st.cache.HGetFieldsForKey(st.ctx, &dst, userByDepartmentCacheKey(u.Department), string(u.ID)),
-			"get user hash map verification err",
-		)
-		st.Require().EqualValues(u, dst, "Unmatched users")
 	}
 }
 
