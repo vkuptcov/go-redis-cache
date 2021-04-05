@@ -122,6 +122,7 @@ func (st *LazyCachingSuite) TestLazyCacheSeveralUsers_LoadASliceOfUsers() {
 }
 
 func (st *LazyCachingSuite) TestLazyCacheUsersByDepartmentsAndByIDs() {
+	st.T().SkipNow()
 	var cacheKeys []string
 	for _, u := range st.users {
 		cacheKeys = append(cacheKeys, userByDepartmentCacheKey(u.Department))
