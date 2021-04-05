@@ -15,7 +15,7 @@ type Options struct {
 
 	ItemToCacheKey func(it interface{}) (key, field string)
 
-	CacheKeyToMapKey func(cacheKey string) string
+	TransformCacheKeyForDestination func(key, field string, val interface{}) (newKey, newField string, skip bool)
 
 	AddCacheMissErrors bool
 }

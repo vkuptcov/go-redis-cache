@@ -82,8 +82,11 @@ func decodeAndAddElementToContainer(opts Options, container containers.Container
 }
 
 func addElementToContainer(opts Options, container containers.Container, key, subkey string, val interface{}) {
-	if opts.CacheKeyToMapKey != nil {
-		key = opts.CacheKeyToMapKey(key)
+	var skip bool
+	if opts.TransformCacheKeyForDestination != nil {
+		key, subkey, skip = opts.TransformCacheKeyForDestination(key, subkey, val)
 	}
-	container.AddElementWithSubkey(key, subkey, val)
+	if !skip {
+		container.AddElementWithSubkey(key, subkey, val)
+	}
 }

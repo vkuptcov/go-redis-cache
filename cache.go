@@ -50,9 +50,9 @@ func (cd *Cache) WithItemToCacheKey(f func(it interface{}) (key, field string)) 
 	return &Cache{opt: opts}
 }
 
-func (cd *Cache) ConvertCacheKeyToMapKey(f func(cacheKey string) string) *Cache {
+func (cd *Cache) TransformCacheKeyForDestination(f func(key, field string, val interface{}) (newKey, newField string, skip bool)) *Cache {
 	opts := cd.opt
-	opts.CacheKeyToMapKey = f
+	opts.TransformCacheKeyForDestination = f
 	return &Cache{opt: opts}
 }
 

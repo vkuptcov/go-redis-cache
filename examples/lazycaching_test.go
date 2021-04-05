@@ -122,7 +122,6 @@ func (st *LazyCachingSuite) TestLazyCacheSeveralUsers_LoadASliceOfUsers() {
 }
 
 func (st *LazyCachingSuite) TestLazyCacheUsersByDepartmentsAndByIDs() {
-	st.T().SkipNow()
 	var cacheKeys []string
 	for _, u := range st.users {
 		cacheKeys = append(cacheKeys, userByDepartmentCacheKey(u.Department))
@@ -156,6 +155,14 @@ func (st *LazyCachingSuite) TestLazyCacheUsersByDepartmentsAndByIDs() {
 			}
 			return items, nil
 		}).
+		TransformCacheKeyForDestination(func(key, field string, val interface{}) (newKey, newField string, skip bool) {
+			if field != "" { // it means department part is absent in the key
+				return "", "", true
+			}
+			var userID string
+			cachekeys.UnpackKey(key, &userID)
+			return userID, "", false
+		}).
 		Get(
 			st.ctx,
 			&dst,
@@ -163,7 +170,13 @@ func (st *LazyCachingSuite) TestLazyCacheUsersByDepartmentsAndByIDs() {
 		)
 
 	st.Require().NoError(err, "No error expected")
-	st.Require().Empty(cmp.Diff(st.users, dst, cmpopts.SortMaps(func(a, b *User) bool {
+
+	expectedMap := map[string]*User{}
+	for uID, u := range st.usersByID {
+		expectedMap[string(uID)] = u
+	}
+
+	st.Require().Empty(cmp.Diff(expectedMap, dst, cmpopts.SortMaps(func(a, b *User) bool {
 		return a.ID > b.ID
 	})), "non-matched users loaded")
 

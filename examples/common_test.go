@@ -30,14 +30,17 @@ func RandomUser() *User {
 	}
 }
 
+const (
+	cacheUserIDPrefix     = "usr-by-id"
+	cacheDepartmentPrefix = "usr-by-dpmt"
+)
+
 func userByIDCacheKey(userID UserID) string {
-	const cachePrefix = "usr-by-id"
-	return cachekeys.CreateKey(cachePrefix, string(userID))
+	return cachekeys.CreateKey(cacheUserIDPrefix, string(userID))
 }
 
 func userByDepartmentCacheKey(department string) string {
-	const cachePrefix = "usr-by-dpmt"
-	return cachekeys.CreateKey(cachePrefix, department)
+	return cachekeys.CreateKey(cacheDepartmentPrefix, department)
 }
 
 type BaseCacheSuite struct {

@@ -100,10 +100,10 @@ func (st *LoadUserSuite) TestLoadSeveralUsersIntoAMap_WithKeyModification() {
 	var dst map[string]*User
 
 	err := st.cache.
-		ConvertCacheKeyToMapKey(func(cacheKey string) string {
+		TransformCacheKeyForDestination(func(key, _ string, _ interface{}) (string, string, bool) {
 			var userID string
-			cachekeys.UnpackKey(cacheKey, &userID)
-			return userID
+			cachekeys.UnpackKey(key, &userID)
+			return userID, "", false
 		}).
 		Get(st.ctx, &dst, st.usersCacheKeys...)
 
