@@ -46,17 +46,12 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 		switch typedCmd := cmderr.(type) {
 		// returned for HMGET
 		case *redis.SliceCmd:
-			if handleErr := handleSliceCmd(typedCmd, opts, container, key, byKeysErr); handleErr != nil {
-				return handleErr
-			}
+			handleSliceCmd(opts, typedCmd, container, key, byKeysErr)
 		// returned for HGETALL
 		case *redis.StringStringMapCmd:
-			handleStringStringMapCmd(typedCmd, opts, container, key, byKeysErr)
+			handleStringStringMapCmd(opts, typedCmd, container, key, byKeysErr)
 		case *redis.StringCmd:
-			decodeErr := decodeAndAddElementToContainer(opts, container, key, "", typedCmd.Val())
-			if decodeErr != nil {
-				byKeysErr.AddErrorForKey(key, decodeErr)
-			}
+			handleStringCmd(opts, typedCmd, container, key, byKeysErr)
 		}
 	}
 	if len(byKeysErr.KeysToErrs) > 0 {
@@ -65,7 +60,34 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 	return nil
 }
 
-func handleStringStringMapCmd(typedCmd *redis.StringStringMapCmd, opts Options, container containers.Container, key string, byKeysErr *KeyErr) {
+func handleSliceCmd(opts Options, typedCmd *redis.SliceCmd, container containers.Container, key string, byKeysErr *KeyErr) {
+	fields := typedCmd.Args()[2:]
+	for fieldIdx, val := range typedCmd.Val() {
+		field := fields[fieldIdx].(string)
+		switch t := val.(type) {
+		case error:
+			if errors.Is(t, redis.Nil) {
+				if opts.AddCacheMissErrors {
+					byKeysErr.AddErrorForKeyAndField(key, field, errors.Wrapf(ErrCacheMiss, "key %q and field %q not found", key, field))
+				}
+			} else {
+				byKeysErr.AddErrorForKeyAndField(key, field, t)
+			}
+		case string:
+			if decodeErr := decodeAndAddElementToContainer(opts, container, key, field, t); decodeErr != nil {
+				byKeysErr.AddErrorForKeyAndField(key, field, decodeErr)
+			}
+		default:
+			if t == nil && opts.AddCacheMissErrors {
+				byKeysErr.AddErrorForKeyAndField(key, field, errors.Wrapf(ErrCacheMiss, "key %q and field %q not found", key, field))
+			} else {
+				byKeysErr.AddErrorForKeyAndField(key, field, errors.Errorf("Non-handled type returned: %T", t))
+			}
+		}
+	}
+}
+
+func handleStringStringMapCmd(opts Options, typedCmd *redis.StringStringMapCmd, container containers.Container, key string, byKeysErr *KeyErr) {
 	for field, val := range typedCmd.Val() {
 		decodeErr := decodeAndAddElementToContainer(opts, container, key, field, val)
 		if decodeErr != nil {
@@ -78,29 +100,9 @@ func handleStringStringMapCmd(typedCmd *redis.StringStringMapCmd, opts Options, 
 	}
 }
 
-func handleSliceCmd(typedCmd *redis.SliceCmd, opts Options, container containers.Container, key string, byKeysErr *KeyErr) error {
-	fields := typedCmd.Args()[2:]
-	for fieldIdx, val := range typedCmd.Val() {
-		field := fields[fieldIdx].(string)
-		switch t := val.(type) {
-		case error:
-			if !errors.Is(t, redis.Nil) {
-				return t
-			}
-		case string:
-			decodeErr := decodeAndAddElementToContainer(opts, container, key, field, t)
-			if decodeErr != nil {
-				byKeysErr.AddErrorForKeyAndField(key, field, decodeErr)
-			}
-		default:
-			if t == nil {
-				if opts.AddCacheMissErrors {
-					byKeysErr.AddErrorForKeyAndField(key, field, errors.Wrapf(ErrCacheMiss, "key %q and field %q not found", key, field))
-				}
-				continue
-			}
-			return errors.Errorf("Non-handled type returned: %T", t)
-		}
+func handleStringCmd(opts Options, typedCmd *redis.StringCmd, container containers.Container, key string, byKeysErr *KeyErr) {
+	decodeErr := decodeAndAddElementToContainer(opts, container, key, "", typedCmd.Val())
+	if decodeErr != nil {
+		byKeysErr.AddErrorForKey(key, decodeErr)
 	}
-	return nil
 }
