@@ -11,10 +11,10 @@ type Cache struct {
 	opt Options
 }
 
-const defaultDuration = 1 * time.Hour
+const DefaultDuration = 1 * time.Hour
 
 func NewCache(opt Options) *Cache {
-	cacheDuration := defaultDuration
+	cacheDuration := DefaultDuration
 	if opt.DefaultTTL >= 1*time.Second {
 		cacheDuration = opt.DefaultTTL
 	}
@@ -25,6 +25,9 @@ func NewCache(opt Options) *Cache {
 	}
 }
 
+// WithTTL overrides the TTL which is set on Cache creation via cache.Options
+// If it is in the [0, 1s) than the value from cache.Options will be used
+// If it is less than 0, than cached values will be stored without an explicit TTL
 func (cd *Cache) WithTTL(ttl time.Duration) *Cache {
 	opts := cd.opt
 	opts.DefaultTTL = ttl
@@ -47,9 +50,9 @@ func (cd *Cache) WithItemToCacheKey(f func(it interface{}) (key, field string)) 
 	return &Cache{opt: opts}
 }
 
-func (cd *Cache) ConvertCacheKeyToMapKey(f func(cacheKey string) string) *Cache {
+func (cd *Cache) TransformCacheKeyForDestination(f func(key, field string, val interface{}) (newKey, newField string, skip bool)) *Cache {
 	opts := cd.opt
-	opts.CacheKeyToMapKey = f
+	opts.TransformCacheKeyForDestination = f
 	return &Cache{opt: opts}
 }
 
@@ -73,6 +76,10 @@ func (cd *Cache) HSetKV(ctx context.Context, key string, fieldValPairs ...interf
 }
 
 // Get gets the value for the given keysToLoad
+// dst might be
+// 1. single element such as structure/number/string/etc
+// 2. a slice of single elements
+// 3. a map key to a single element
 func (cd *Cache) Get(ctx context.Context, dst interface{}, keys ...string) error {
 	return internal.Get(ctx, cd.opt, dst, keys)
 }

@@ -92,7 +92,13 @@ func (s singleElement) AddElementWithSubkey(_, _ string, value interface{}) {
 }
 
 func (s singleElement) AddElement(_ string, value interface{}) {
-	s.assignableValue.Set(reflect.Indirect(reflect.ValueOf(value)))
+	val := reflect.ValueOf(value)
+	assignableType := s.assignableValue.Type()
+	if assignableType.AssignableTo(val.Type()) {
+		s.assignableValue.Set(reflect.ValueOf(value))
+	} else {
+		s.assignableValue.Set(reflect.Indirect(val))
+	}
 }
 
 func (s singleElement) InitWithSize(_ int) {}

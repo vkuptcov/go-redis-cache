@@ -54,6 +54,7 @@ func HSetKV(ctx context.Context, opts Options, key string, fieldValPairs ...inte
 	}
 	fieldMarshalledValsPairs := make([]interface{}, len(fieldValPairs))
 	for idx := 0; idx < len(fieldValPairs); idx += 2 {
+		// @todo allow string subtypes here as well
 		field, ok := fieldValPairs[idx].(string)
 		if !ok {
 			return errors.Wrapf(ErrNonStringKey, "string field expected for position %d, `%#+v` of type %T given", idx, fieldValPairs[idx], fieldValPairs[idx])

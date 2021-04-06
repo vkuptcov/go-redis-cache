@@ -21,7 +21,7 @@ type Item struct {
 	TTL time.Duration
 
 	// IfExists only sets the key if it already exist.
-	// doesn't work if Field is set as Redis hash maps doesn't support it
+	// Doesn't work if Field is set: Redis hash maps doesn't support it
 	IfExists bool
 
 	// IfNotExists only sets the key if it does not already exist.

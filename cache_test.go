@@ -348,8 +348,8 @@ func (st *CacheSuite) TestGet_IntoMap_WithMapKeyModification() {
 	}
 
 	getErr := st.cache.
-		ConvertCacheKeyToMapKey(func(cacheKey string) string {
-			return "converted_" + cacheKey
+		TransformCacheKeyForDestination(func(cacheKey, field string, _ interface{}) (string, string, bool) {
+			return "converted_" + cacheKey, "", false
 		}).
 		WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
 			m := map[string]string{}
