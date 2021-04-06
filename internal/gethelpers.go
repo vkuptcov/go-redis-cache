@@ -35,7 +35,7 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 		if cmderr.Err() != nil {
 			if errors.Is(cmderr.Err(), redis.Nil) {
 				if opts.AddCacheMissErrors {
-					byKeysErr.AddErrorForKey(key, errors.Wrapf(ErrCacheMiss, "key %q not found", key))
+					byKeysErr.AddErrorForKey(key, ErrCacheMiss)
 				}
 			} else {
 				byKeysErr.AddErrorForKey(key, cmderr.Err())
@@ -68,7 +68,7 @@ func handleSliceCmd(opts Options, typedCmd *redis.SliceCmd, container containers
 		case error:
 			if errors.Is(t, redis.Nil) {
 				if opts.AddCacheMissErrors {
-					byKeysErr.AddErrorForKeyAndField(key, field, errors.Wrapf(ErrCacheMiss, "key %q and field %q not found", key, field))
+					byKeysErr.AddErrorForKeyAndField(key, field, ErrCacheMiss)
 				}
 			} else {
 				byKeysErr.AddErrorForKeyAndField(key, field, t)
@@ -79,7 +79,7 @@ func handleSliceCmd(opts Options, typedCmd *redis.SliceCmd, container containers
 			}
 		default:
 			if t == nil && opts.AddCacheMissErrors {
-				byKeysErr.AddErrorForKeyAndField(key, field, errors.Wrapf(ErrCacheMiss, "key %q and field %q not found", key, field))
+				byKeysErr.AddErrorForKeyAndField(key, field, ErrCacheMiss)
 			} else {
 				byKeysErr.AddErrorForKeyAndField(key, field, errors.Errorf("Non-handled type returned: %T", t))
 			}
@@ -96,7 +96,7 @@ func handleStringStringMapCmd(opts Options, typedCmd *redis.StringStringMapCmd, 
 	}
 	// HGETALL doesn't return redis.Nil error for absent keys and returns just an empty list
 	if len(typedCmd.Val()) == 0 {
-		byKeysErr.AddErrorForKey(key, errors.Wrapf(ErrCacheMiss, "key %q not found", key))
+		byKeysErr.AddErrorForKey(key, ErrCacheMiss)
 	}
 }
 
