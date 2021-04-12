@@ -78,8 +78,10 @@ func handleSliceCmd(opts Options, typedCmd *redis.SliceCmd, container containers
 				byKeysErr.AddErrorForKeyAndField(key, field, decodeErr)
 			}
 		default:
-			if t == nil && opts.AddCacheMissErrors {
-				byKeysErr.AddErrorForKeyAndField(key, field, ErrCacheMiss)
+			if t == nil {
+				if opts.AddCacheMissErrors {
+					byKeysErr.AddErrorForKeyAndField(key, field, ErrCacheMiss)
+				}
 			} else {
 				byKeysErr.AddErrorForKeyAndField(key, field, errors.Errorf("Non-handled type returned: %T", t))
 			}
@@ -95,7 +97,7 @@ func handleStringStringMapCmd(opts Options, typedCmd *redis.StringStringMapCmd, 
 		}
 	}
 	// HGETALL doesn't return redis.Nil error for absent keys and returns just an empty list
-	if len(typedCmd.Val()) == 0 {
+	if len(typedCmd.Val()) == 0 && opts.AddCacheMissErrors {
 		byKeysErr.AddErrorForKey(key, ErrCacheMiss)
 	}
 }

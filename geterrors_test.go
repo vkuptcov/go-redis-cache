@@ -59,6 +59,45 @@ func (st *GetErrorsSuite) TestKeyMissErrorsForDefaultSettings() {
 				return st.cache.Get(st.ctx, &dst, faker.RandomString(15))
 			},
 		},
+		{
+			testCase: "load hash map (only one of key exists)",
+			loader: func(dst interface{}) error {
+				return st.cache.HGetAll(st.ctx, dst, st.hashKey, faker.RandomString(15))
+			},
+		},
+		{
+			testCase: "load hash map with a single non-exists key",
+			loader: func(dst interface{}) error {
+				return st.cache.HGetAll(st.ctx, dst, faker.RandomString(15))
+			},
+		},
+		{
+			testCase: "load hash map and fields for existing key and one of existing fields",
+			loader: func(dst interface{}) error {
+				return st.cache.HGetFieldsForKey(st.ctx, dst, st.hashKey, st.hashField, faker.RandomString(15))
+			},
+		},
+		{
+			testCase: "load hash map and fields for existing key and one of non-existing fields",
+			loader: func(dst interface{}) error {
+				return st.cache.HGetFieldsForKey(st.ctx, dst, st.hashKey, faker.RandomString(15))
+			},
+		},
+		{
+			testCase: "load hash map and fields for non-existing key",
+			loader: func(dst interface{}) error {
+				return st.cache.HGetFieldsForKey(st.ctx, dst, faker.RandomString(15), faker.RandomString(15))
+			},
+		},
+		{
+			testCase: "load hash map and fields for non-existing keys and fields",
+			loader: func(dst interface{}) error {
+				return st.cache.HGetKeysAndFields(st.ctx, dst, map[string][]string{
+					st.hashKey:             {st.hashField, faker.RandomString(15)},
+					faker.RandomString(15): {faker.RandomString(15)},
+				})
+			},
+		},
 	}
 
 	for _, tc := range testCases {
