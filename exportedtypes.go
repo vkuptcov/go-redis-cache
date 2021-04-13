@@ -13,3 +13,4 @@ type Options = internal.Options
 type KeyErr = internal.KeyErr
 
 var ErrItemToCacheKeyFnRequired = internal.ErrItemToCacheKeyFnRequired
+var ErrCacheMiss = internal.ErrCacheMiss
