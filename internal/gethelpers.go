@@ -24,12 +24,32 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 		return containerInitErr
 	}
 	container.InitWithSize(len(cmds))
+	_, isSingleElementContainer := container.(containers.SingleElement)
+	// in case we don't have the desired element in cache and we want just to load a single one,
+	// it's convenient to return a single cache miss error instead of KeyErr because the key is already known
+	returnErrCacheMiss := isSingleElementContainer &&
+		!opts.DisableCacheMissErrorsForSingleElementDst &&
+		!opts.AddCacheMissErrors
+	if returnErrCacheMiss || opts.AbsentKeysLoader != nil {
+		opts.AddCacheMissErrors = true
+	}
 
-	byKeysErr := &KeyErr{
+	byKeysErr := handleCmds(opts, cmds, container)
+
+	if len(byKeysErr.KeysToErrs) > 0 {
+		if returnErrCacheMiss && len(byKeysErr.KeysToErrs) == 1 && byKeysErr.CacheMissErrsCount == 1 {
+			return ErrCacheMiss
+		}
+		return byKeysErr
+	}
+	return nil
+}
+
+func handleCmds(opts Options, cmds []redis.Cmder, container containers.Container) (byKeysErr *KeyErr) {
+	byKeysErr = &KeyErr{
 		KeysToErrs:         map[string]error{},
 		CacheMissErrsCount: 0,
 	}
-
 	for _, cmderr := range cmds {
 		key := cmderr.Args()[1].(string)
 		if cmderr.Err() != nil {
@@ -54,10 +74,7 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 			handleStringCmd(opts, typedCmd, container, key, byKeysErr)
 		}
 	}
-	if len(byKeysErr.KeysToErrs) > 0 {
-		return byKeysErr
-	}
-	return nil
+	return byKeysErr
 }
 
 func handleSliceCmd(opts Options, typedCmd *redis.SliceCmd, container containers.Container, key string, byKeysErr *KeyErr) {

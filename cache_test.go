@@ -207,13 +207,6 @@ func (st *CacheSuite) TestGet() {
 		}
 	})
 
-	st.Run("get non-exists key ignoring cache miss errors", func() {
-		var dst string
-		err := st.cache.Get(ctx, &dst, nonExistKey)
-		st.Require().NoError(err, "No error expected on getting non-exist-key")
-		st.Require().Empty(dst, "Dst should remain unchanged")
-	})
-
 	st.Run("get non-exists key with cache miss errors", func() {
 		var dst string
 		err := st.cache.AddCacheMissErrors().Get(ctx, &dst, nonExistKey)

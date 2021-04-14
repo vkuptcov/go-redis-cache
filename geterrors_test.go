@@ -67,7 +67,7 @@ func (st *GetErrorsSuite) TestKeyMissErrors() {
 		{
 			testCase: "load scalars with a single non-exists key",
 			loader: func(c *cache.Cache, dst interface{}) error {
-				return c.Get(st.ctx, &dst, nonExistedKey)
+				return c.Get(st.ctx, dst, nonExistedKey)
 			},
 			cacheMissError: &cache.KeyErr{
 				KeysToErrs: map[string]error{
@@ -185,6 +185,48 @@ func (st *GetErrorsSuite) TestKeyMissErrors() {
 			})
 		}
 	})
+}
+
+func (st *GetErrorsSuite) Test_SingleElementDestination_ShouldHaveCacheMissErrorByDefault() {
+	var dst string
+	testCases := []struct {
+		testCase string
+		loader   func() error
+	}{
+		{
+			testCase: "simple get",
+			loader: func() error {
+				return st.cache.Get(st.ctx, &dst, nonExistedKey)
+			},
+		},
+		{
+			testCase: "hget fields for single key",
+			loader: func() error {
+				return st.cache.HGetFieldsForKey(st.ctx, &dst, nonExistedKey, nonExistedField)
+			},
+		},
+		{
+			testCase: "hget all",
+			loader: func() error {
+				return st.cache.HGetAll(st.ctx, &dst, nonExistedKey)
+			},
+		},
+		{
+			testCase: "hget keys and fields",
+			loader: func() error {
+				return st.cache.HGetKeysAndFields(st.ctx, &dst, map[string][]string{
+					nonExistedKey: {nonExistedField},
+				})
+			},
+		},
+	}
+	for _, tc := range testCases {
+		st.Run(tc.testCase, func() {
+			dst = ""
+			loadErr := tc.loader()
+			st.Require().Truef(errors.Is(loadErr, cache.ErrCacheMiss), "cache.ErrCacheMiss expected, %+v given", loadErr)
+		})
+	}
 }
 
 func (st *GetErrorsSuite) compareKeyErr(expected *cache.KeyErr, actual error) {
