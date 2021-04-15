@@ -28,14 +28,14 @@ func (k *KeyErr) HasNonCacheMissErrs() bool {
 }
 
 func (k *KeyErr) AddErrorForKey(key string, err error) {
-	k.KeysToErrs[key] = err
+	k.KeysToErrs[key] = errors.Wrapf(err, "Key %q load failed", key)
 	if errors.Is(err, ErrCacheMiss) {
 		k.CacheMissErrsCount++
 	}
 }
 
 func (k *KeyErr) AddErrorForKeyAndField(key, field string, err error) {
-	k.KeysToErrs[cachekeys.KeyWithField(key, field)] = err
+	k.KeysToErrs[cachekeys.KeyWithField(key, field)] = errors.Wrapf(err, "Key %q with field %q load failed", key, field)
 	if errors.Is(err, ErrCacheMiss) {
 		k.CacheMissErrsCount++
 	}

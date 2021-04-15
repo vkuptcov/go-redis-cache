@@ -78,20 +78,20 @@ func (s sliceContainer) InitWithSize(size int) {
 	}
 }
 
-type singleElement struct {
+type SingleElement struct {
 	dst             interface{}
 	assignableValue reflect.Value
 }
 
-func (s singleElement) DstEl() interface{} {
+func (s SingleElement) DstEl() interface{} {
 	return s.dst
 }
 
-func (s singleElement) AddElementWithSubkey(_, _ string, value interface{}) {
+func (s SingleElement) AddElementWithSubkey(_, _ string, value interface{}) {
 	s.AddElement("", value)
 }
 
-func (s singleElement) AddElement(_ string, value interface{}) {
+func (s SingleElement) AddElement(_ string, value interface{}) {
 	val := reflect.ValueOf(value)
 	assignableType := s.assignableValue.Type()
 	if assignableType.AssignableTo(val.Type()) {
@@ -101,7 +101,7 @@ func (s singleElement) AddElement(_ string, value interface{}) {
 	}
 }
 
-func (s singleElement) InitWithSize(_ int) {}
+func (s SingleElement) InitWithSize(_ int) {}
 
 func NewContainer(dst interface{}) (Container, error) {
 	reflectValue := reflect.Indirect(reflect.ValueOf(dst))
@@ -130,7 +130,7 @@ func NewContainer(dst interface{}) (Container, error) {
 		base.cntType = reflectValue.Type()
 		result = sliceContainer{baseContainer: base}
 	default:
-		return singleElement{
+		return SingleElement{
 			assignableValue: base.assignableValue,
 			dst:             dst,
 		}, nil
@@ -146,4 +146,4 @@ func NewContainer(dst interface{}) (Container, error) {
 
 var _ Container = mapContainer{}
 var _ Container = sliceContainer{}
-var _ Container = singleElement{}
+var _ Container = SingleElement{}

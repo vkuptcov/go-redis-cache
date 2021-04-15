@@ -9,7 +9,6 @@ import (
 	"github.com/vkuptcov/go-redis-cache/v8/internal/containers"
 )
 
-//nolint:gocognit,gocyclo // @todo move switch cases in different functions
 func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{}, pipelinerFiller func(pipeliner redis.Pipeliner)) error {
 	if opts.AbsentKeysLoader != nil {
 		opts.AddCacheMissErrors = true
@@ -25,12 +24,32 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 		return containerInitErr
 	}
 	container.InitWithSize(len(cmds))
+	_, isSingleElementContainer := container.(containers.SingleElement)
+	// in case we don't have the desired element in cache and we want just to load a single one,
+	// it's convenient to return a single cache miss error instead of KeyErr because the key is already known
+	returnErrCacheMiss := isSingleElementContainer &&
+		!opts.DisableCacheMissErrorsForSingleElementDst &&
+		!opts.AddCacheMissErrors
+	if returnErrCacheMiss || opts.AbsentKeysLoader != nil {
+		opts.AddCacheMissErrors = true
+	}
 
-	byKeysErr := &KeyErr{
+	byKeysErr := handleCmds(opts, cmds, container)
+
+	if len(byKeysErr.KeysToErrs) > 0 {
+		if returnErrCacheMiss && len(byKeysErr.KeysToErrs) == 1 && byKeysErr.CacheMissErrsCount == 1 {
+			return ErrCacheMiss
+		}
+		return byKeysErr
+	}
+	return nil
+}
+
+func handleCmds(opts Options, cmds []redis.Cmder, container containers.Container) (byKeysErr *KeyErr) {
+	byKeysErr = &KeyErr{
 		KeysToErrs:         map[string]error{},
 		CacheMissErrsCount: 0,
 	}
-
 	for _, cmderr := range cmds {
 		key := cmderr.Args()[1].(string)
 		if cmderr.Err() != nil {
@@ -47,50 +66,62 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 		switch typedCmd := cmderr.(type) {
 		// returned for HMGET
 		case *redis.SliceCmd:
-			fields := typedCmd.Args()[2:]
-			for fieldIdx, val := range typedCmd.Val() {
-				field := fields[fieldIdx].(string)
-				switch t := val.(type) {
-				case error:
-					if !errors.Is(t, redis.Nil) {
-						return t
-					}
-				case string:
-					decodeErr := decodeAndAddElementToContainer(opts, container, key, field, t)
-					if decodeErr != nil {
-						byKeysErr.AddErrorForKeyAndField(key, field, decodeErr)
-					}
-				default:
-					if t == nil {
-						if opts.AddCacheMissErrors {
-							byKeysErr.AddErrorForKeyAndField(key, field, ErrCacheMiss)
-						}
-						continue
-					}
-					return errors.Errorf("Non-handled type returned: %T", t)
-				}
-			}
+			handleSliceCmd(opts, typedCmd, container, key, byKeysErr)
 		// returned for HGETALL
 		case *redis.StringStringMapCmd:
-			for field, val := range typedCmd.Val() {
-				decodeErr := decodeAndAddElementToContainer(opts, container, key, field, val)
-				if decodeErr != nil {
-					byKeysErr.AddErrorForKeyAndField(key, field, decodeErr)
-				}
-			}
-			// HGETALL doesn't return redis.Nil error for absent keys and returns just an empty list
-			if len(typedCmd.Val()) == 0 {
-				byKeysErr.AddErrorForKey(key, ErrCacheMiss)
-			}
+			handleStringStringMapCmd(opts, typedCmd, container, key, byKeysErr)
 		case *redis.StringCmd:
-			decodeErr := decodeAndAddElementToContainer(opts, container, key, "", typedCmd.Val())
-			if decodeErr != nil {
-				byKeysErr.AddErrorForKey(key, decodeErr)
+			handleStringCmd(opts, typedCmd, container, key, byKeysErr)
+		}
+	}
+	return byKeysErr
+}
+
+func handleSliceCmd(opts Options, typedCmd *redis.SliceCmd, container containers.Container, key string, byKeysErr *KeyErr) {
+	fields := typedCmd.Args()[2:]
+	for fieldIdx, val := range typedCmd.Val() {
+		field := fields[fieldIdx].(string)
+		switch t := val.(type) {
+		case error:
+			if errors.Is(t, redis.Nil) {
+				if opts.AddCacheMissErrors {
+					byKeysErr.AddErrorForKeyAndField(key, field, ErrCacheMiss)
+				}
+			} else {
+				byKeysErr.AddErrorForKeyAndField(key, field, t)
+			}
+		case string:
+			if decodeErr := decodeAndAddElementToContainer(opts, container, key, field, t); decodeErr != nil {
+				byKeysErr.AddErrorForKeyAndField(key, field, decodeErr)
+			}
+		default:
+			if t == nil {
+				if opts.AddCacheMissErrors {
+					byKeysErr.AddErrorForKeyAndField(key, field, ErrCacheMiss)
+				}
+			} else {
+				byKeysErr.AddErrorForKeyAndField(key, field, errors.Errorf("Non-handled type returned: %T", t))
 			}
 		}
 	}
-	if len(byKeysErr.KeysToErrs) > 0 {
-		return byKeysErr
+}
+
+func handleStringStringMapCmd(opts Options, typedCmd *redis.StringStringMapCmd, container containers.Container, key string, byKeysErr *KeyErr) {
+	for field, val := range typedCmd.Val() {
+		decodeErr := decodeAndAddElementToContainer(opts, container, key, field, val)
+		if decodeErr != nil {
+			byKeysErr.AddErrorForKeyAndField(key, field, decodeErr)
+		}
 	}
-	return nil
+	// HGETALL doesn't return redis.Nil error for absent keys and returns just an empty list
+	if len(typedCmd.Val()) == 0 && opts.AddCacheMissErrors {
+		byKeysErr.AddErrorForKey(key, ErrCacheMiss)
+	}
+}
+
+func handleStringCmd(opts Options, typedCmd *redis.StringCmd, container containers.Container, key string, byKeysErr *KeyErr) {
+	decodeErr := decodeAndAddElementToContainer(opts, container, key, "", typedCmd.Val())
+	if decodeErr != nil {
+		byKeysErr.AddErrorForKey(key, decodeErr)
+	}
 }

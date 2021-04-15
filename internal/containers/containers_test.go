@@ -11,7 +11,7 @@ import (
 type ContainersSuite struct {
 	expectedSliceContainer  sliceContainer
 	expectedMapContainer    mapContainer
-	expectedSingleContainer singleElement
+	expectedSingleContainer SingleElement
 	suite.Suite
 }
 

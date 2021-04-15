@@ -18,6 +18,8 @@ type Options struct {
 	TransformCacheKeyForDestination func(key, field string, val interface{}) (newKey, newField string, skip bool)
 
 	AddCacheMissErrors bool
+
+	DisableCacheMissErrorsForSingleElementDst bool
 }
 
 func (opt Options) redisTTL(itemTTL time.Duration) time.Duration {

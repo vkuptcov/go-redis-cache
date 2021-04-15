@@ -62,6 +62,12 @@ func (cd *Cache) AddCacheMissErrors() *Cache {
 	return &Cache{opt: opts}
 }
 
+func (cd *Cache) DisableCacheMissErrorsForSingleElementDst() *Cache {
+	opts := cd.opt
+	opts.DisableCacheMissErrorsForSingleElementDst = true
+	return &Cache{opt: opts}
+}
+
 // Set sets multiple elements
 func (cd *Cache) Set(ctx context.Context, items ...*Item) error {
 	return internal.SetMulti(ctx, cd.opt, items...)
