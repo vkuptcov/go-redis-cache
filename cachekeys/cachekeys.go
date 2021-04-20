@@ -46,10 +46,6 @@ func KeyWithField(key, field string) string {
 	return key + fieldSeparator + field
 }
 
-func HasFieldInKey(key string) bool {
-	return strings.Contains(key, fieldSeparator)
-}
-
 func SplitKeyAndField(s string) (key, field string) {
 	lastIndex := strings.LastIndex(s, fieldSeparator)
 	key = s
