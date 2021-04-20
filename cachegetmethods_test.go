@@ -27,6 +27,15 @@ func (st *GetMethodsSuite) TestGet() {
 		)
 		st.Require().EqualValues(keyVals.vals[0], dst, "Unexpected dst")
 	})
+	st.Run("load into a primitive set as interface", func() {
+		var dst interface{}
+		dst = ""
+		st.Require().NoError(
+			st.cache.Get(st.ctx, &dst, keyVals.keys[0]),
+			"No error expected on getting key",
+		)
+		st.Require().EqualValues(keyVals.vals[0], dst, "Unexpected dst")
+	})
 	st.Run("load into a slice", func() {
 		var dst []string
 		st.Require().NoError(
