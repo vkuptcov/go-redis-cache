@@ -68,15 +68,20 @@ func (cd *Cache) DisableCacheMissErrorsForSingleElementDst() *Cache {
 	return &Cache{opt: opts}
 }
 
-// Set sets multiple elements
+// Set sets multiple items in cache.
+// As the entire Item needs to be specified,
+// it's possible to mix different types and keys, use hash maps, set custom TTL and so on
 func (cd *Cache) Set(ctx context.Context, items ...*Item) error {
 	return internal.SetMulti(ctx, cd.opt, items...)
 }
 
+// SetKV sets multiple items in cache, default TTL or the TTL from WithTTL will be used
 func (cd *Cache) SetKV(ctx context.Context, keyValPairs ...interface{}) error {
 	return internal.SetKV(ctx, cd.opt, keyValPairs...)
 }
 
+// HSetKV sets multiple fields for a single key in a Redis hash map.
+// Default TTL or the TTL from WithTTL will be used.
 func (cd *Cache) HSetKV(ctx context.Context, key string, fieldValPairs ...interface{}) error {
 	return internal.HSetKV(ctx, cd.opt, key, fieldValPairs...)
 }
@@ -90,14 +95,17 @@ func (cd *Cache) Get(ctx context.Context, dst interface{}, keys ...string) error
 	return internal.Get(ctx, cd.opt, dst, keys)
 }
 
+// HGetAll loads all fields from Redis hash maps defined for keys
 func (cd *Cache) HGetAll(ctx context.Context, dst interface{}, keys ...string) error {
 	return internal.HGetAll(ctx, cd.opt, dst, keys)
 }
 
+// HGetFieldsForKey loads specified fields from the Redis hash map defined by key
 func (cd *Cache) HGetFieldsForKey(ctx context.Context, dst interface{}, key string, fields ...string) error {
 	return internal.HGetFields(ctx, cd.opt, dst, map[string][]string{key: fields})
 }
 
+// HGetKeysAndFields loads specified fields from the Redis hash map for keys and specified fields
 func (cd *Cache) HGetKeysAndFields(ctx context.Context, dst interface{}, keysToFields map[string][]string) error {
 	return internal.HGetFields(ctx, cd.opt, dst, keysToFields)
 }
