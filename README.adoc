@@ -1,0 +1,87 @@
+= Golang Redis cache library
+
+This library is inspired by https://github.com/go-redis/cache
+
+The difference is that this library supports MGet/MSet and HashMap support
+
+== Usage examples
+
+Check link:examples[./examples] directory for more use cases
+
+=== Cache initialization
+[source,go]
+----
+client = redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+
+marshaller = marshaller.NewMarshaller(&marshallers.JSONMarshaller{})
+
+cache = cache.NewCache(cache.Options{
+		Redis:      client,
+		Marshaller: marshaller,
+	})
+----
+
+=== Save items to cache
+[source,go]
+----
+type User struct {
+	ID         UserID
+	Name       string
+	Department string
+}
+
+// user1, user2, ..., userN initialization
+cache.WithTTL(1*time.Minute).
+    Set(st.ctx,
+    	&cache.Item{
+            Key:   userByIDCacheKey(user1.ID),
+            Value: user1,
+            TTL:   5 * time.Second,
+        },
+    	&cache.Item{
+            Key:   userByIDCacheKey(user2.ID),
+            Value: user2,
+        },
+    	&cache.Item{
+            Key:   userByIDCacheKey(user2.ID),
+            Value: user2,
+            TTL: 10 * time.Second,
+        },
+    )
+----
+
+=== Load items from cache
+[source,go]
+----
+// single user
+var user *User
+cache.Get(ctx, &user, userByIDCacheKey(userID))
+
+// several users into a slice
+var users []*User
+cache.Get(ctx, &users, userByIDCacheKey(firstID), userByIDCacheKey(secondID))
+
+// several users into a map
+var usersByID map[string]*User
+cache.
+    TransformCacheKeyForDestination(func(key, _ string, _ interface{}) (string, string, bool) {
+        var userID string
+        cachekeys.UnpackKey(key, &userID)
+        return userID, "", false
+    }).
+	Get(ctx, &usersByID, userByIDCacheKey(firstID), userByIDCacheKey(secondID))
+----
+
+=== Load items from cache or from other source
+[source,go]
+----
+var user *User
+cache.
+    WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
+    	// load user from DB
+        return loadedUser, nil
+    }.
+	Get(ctx, &user, userByIDCacheKey(userID))
+----
