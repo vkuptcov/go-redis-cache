@@ -44,9 +44,13 @@ func (cd *Cache) WithAbsentKeysLoader(f func(absentKeys ...string) (interface{},
 	return &Cache{opt: opts}
 }
 
-func (cd *Cache) WithItemToCacheKey(f func(it interface{}) (key, field string)) *Cache {
+// ExtractCacheKeyWith sets a function which is used to transform loaded item
+// into key and an optional field.
+// It must be set if AbsentKeysLoader function returns a slice of elements to be cached.
+// Otherwise it's not possible to determine how to cache the returned elements.
+func (cd *Cache) ExtractCacheKeyWith(f func(it interface{}) (key, field string)) *Cache {
 	opts := cd.opt
-	opts.ItemToCacheKey = f
+	opts.CacheKeyExtractor = f
 	return &Cache{opt: opts}
 }
 

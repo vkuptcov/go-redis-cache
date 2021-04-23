@@ -122,7 +122,7 @@ func (st *CacheAbsentKeysLoaderSuite) TestViaGet_ReturningSlice() {
 	var dst map[string]string
 	st.Require().NoError(
 		st.cache.
-			WithItemToCacheKey(func(it interface{}) (key, field string) {
+			ExtractCacheKeyWith(func(it interface{}) (key, field string) {
 				return strings.TrimSuffix(it.(string), "-element"), ""
 			}).
 			WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
