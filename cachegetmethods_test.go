@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"syreclabs.com/go/faker"
 
-	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
+	"github.com/vkuptcov/go-redis-cache/v7/cachekeys"
 )
 
 type GetMethodsSuite struct {

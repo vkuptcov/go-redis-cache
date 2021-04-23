@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
+	"github.com/vkuptcov/go-redis-cache/v7/cachekeys"
 )
 
 func newDataTransformer(absentKeys []string, data interface{}, itemToCacheKeyFn func(it interface{}) (key, field string)) interface {

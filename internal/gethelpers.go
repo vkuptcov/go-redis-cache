@@ -3,10 +3,10 @@ package internal
 import (
 	"context"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis/v7"
 	"github.com/pkg/errors"
 
-	"github.com/vkuptcov/go-redis-cache/v8/internal/containers"
+	"github.com/vkuptcov/go-redis-cache/v7/internal/containers"
 )
 
 func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{}, pipelinerFiller func(pipeliner redis.Pipeliner)) error {
@@ -17,7 +17,7 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 	pipelinerFiller(pipeliner)
 
 	// pipeliner errs will be checked for all the keys
-	cmds, _ := pipeliner.Exec(ctx)
+	cmds, _ := pipeliner.ExecContext(ctx)
 
 	container, containerInitErr := containers.NewContainer(dst)
 	if containerInitErr != nil {

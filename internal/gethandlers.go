@@ -3,16 +3,16 @@ package internal
 import (
 	"context"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis/v7"
 	"github.com/pkg/errors"
 
-	"github.com/vkuptcov/go-redis-cache/v8/internal/containers"
+	"github.com/vkuptcov/go-redis-cache/v7/internal/containers"
 )
 
 func Get(ctx context.Context, opts Options, dst interface{}, keys []string) error {
 	return getInternal(ctx, opts, dst, func(pipeliner redis.Pipeliner) {
 		for _, k := range keys {
-			_ = pipeliner.Get(ctx, k)
+			_ = pipeliner.Get(k)
 		}
 	})
 }
@@ -20,7 +20,7 @@ func Get(ctx context.Context, opts Options, dst interface{}, keys []string) erro
 func HGetAll(ctx context.Context, opts Options, dst interface{}, keys []string) error {
 	return getInternal(ctx, opts, dst, func(pipeliner redis.Pipeliner) {
 		for _, k := range keys {
-			pipeliner.HGetAll(ctx, k)
+			pipeliner.HGetAll(k)
 		}
 	})
 }
@@ -28,7 +28,7 @@ func HGetAll(ctx context.Context, opts Options, dst interface{}, keys []string) 
 func HGetFields(ctx context.Context, opts Options, dst interface{}, keysToFields map[string][]string) error {
 	return getInternal(ctx, opts, dst, func(pipeliner redis.Pipeliner) {
 		for key, fields := range keysToFields {
-			pipeliner.HMGet(ctx, key, fields...)
+			pipeliner.HMGet(key, fields...)
 		}
 	})
 }

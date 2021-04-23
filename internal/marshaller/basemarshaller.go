@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/vkuptcov/go-redis-cache/v8/internal"
+	"github.com/vkuptcov/go-redis-cache/v7/internal"
 )
 
 type baseMarshaller struct {

@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/vkuptcov/go-redis-cache/v8/marshallers"
+	"github.com/vkuptcov/go-redis-cache/v7/marshallers"
 )
 
 type structureToSerialize struct {

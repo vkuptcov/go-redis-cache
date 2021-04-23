@@ -3,15 +3,15 @@ package examples
 import (
 	"context"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis/v7"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/suite"
 	"syreclabs.com/go/faker"
 
-	cache "github.com/vkuptcov/go-redis-cache/v8"
-	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
-	"github.com/vkuptcov/go-redis-cache/v8/internal/marshaller"
-	"github.com/vkuptcov/go-redis-cache/v8/marshallers"
+	cache "github.com/vkuptcov/go-redis-cache/v7"
+	"github.com/vkuptcov/go-redis-cache/v7/cachekeys"
+	"github.com/vkuptcov/go-redis-cache/v7/internal/marshaller"
+	"github.com/vkuptcov/go-redis-cache/v7/marshallers"
 )
 
 type UserID string

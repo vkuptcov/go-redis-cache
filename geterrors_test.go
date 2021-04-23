@@ -5,10 +5,10 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/suite"
-	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
+	"github.com/vkuptcov/go-redis-cache/v7/cachekeys"
 	"syreclabs.com/go/faker"
 
-	cache "github.com/vkuptcov/go-redis-cache/v8"
+	cache "github.com/vkuptcov/go-redis-cache/v7"
 )
 
 type GetErrorsSuite struct {

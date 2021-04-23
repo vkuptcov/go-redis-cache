@@ -3,7 +3,7 @@ package marshallers
 import (
 	"encoding/json"
 
-	"github.com/vkuptcov/go-redis-cache/v8/internal"
+	"github.com/vkuptcov/go-redis-cache/v7/internal"
 )
 
 type JSONMarshaller struct{}

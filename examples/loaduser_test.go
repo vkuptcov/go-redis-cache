@@ -7,8 +7,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/suite"
 
-	cache "github.com/vkuptcov/go-redis-cache/v8"
-	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
+	cache "github.com/vkuptcov/go-redis-cache/v7"
+	"github.com/vkuptcov/go-redis-cache/v7/cachekeys"
 )
 
 type LoadUserSuite struct {

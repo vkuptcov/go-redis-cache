@@ -4,16 +4,16 @@ import (
 	"context"
 	"testing"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis/v7"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"syreclabs.com/go/faker"
 
-	cache "github.com/vkuptcov/go-redis-cache/v8"
-	"github.com/vkuptcov/go-redis-cache/v8/internal/marshaller"
-	"github.com/vkuptcov/go-redis-cache/v8/marshallers"
+	cache "github.com/vkuptcov/go-redis-cache/v7"
+	"github.com/vkuptcov/go-redis-cache/v7/internal/marshaller"
+	"github.com/vkuptcov/go-redis-cache/v7/marshallers"
 )
 
 type BaseCacheSuite struct {

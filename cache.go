@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/vkuptcov/go-redis-cache/v8/internal"
+	"github.com/vkuptcov/go-redis-cache/v7/internal"
 )
 
 type Cache struct {

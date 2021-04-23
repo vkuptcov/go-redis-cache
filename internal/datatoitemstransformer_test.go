@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 	requireLib "github.com/stretchr/testify/require"
 
-	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
+	"github.com/vkuptcov/go-redis-cache/v7/cachekeys"
 )
 
 func TestNewDataTransformer(t *testing.T) {

@@ -3,11 +3,11 @@ package cache_test
 import (
 	"testing"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis/v7"
 	"github.com/stretchr/testify/suite"
 	"syreclabs.com/go/faker"
 
-	cache "github.com/vkuptcov/go-redis-cache/v8"
+	cache "github.com/vkuptcov/go-redis-cache/v7"
 )
 
 type SetMethodsSuite struct {
@@ -148,9 +148,9 @@ func (st *SetMethodsSuite) TestSet() {
 				st.Run("Loading key: "+item.Key, func() {
 					var stringCmd *redis.StringCmd
 					if item.Field == "" {
-						stringCmd = st.client.Get(st.ctx, item.Key)
+						stringCmd = st.client.Get(item.Key)
 					} else {
-						stringCmd = st.client.HGet(st.ctx, item.Key, item.Field)
+						stringCmd = st.client.HGet(item.Key, item.Field)
 					}
 					expected, marshalErr := st.marshaller.Marshal(item.Value)
 					st.Require().NoError(marshalErr, "")
@@ -169,7 +169,7 @@ func (st *SetMethodsSuite) TestSetKV() {
 	setErr := st.cache.SetKV(st.ctx, keyVals.keyValPairs...)
 	st.Require().NoError(setErr, "No error expected for SetKV")
 	for k, v := range keyVals.keyVals {
-		stringCmd := st.client.Get(st.ctx, k)
+		stringCmd := st.client.Get(k)
 		st.Require().NoError(stringCmd.Err(), "No error expected on getting value")
 		st.Require().EqualValues(v, stringCmd.Val(), "Unexpected value")
 	}
@@ -182,7 +182,7 @@ func (st *SetMethodsSuite) TestHSetKV() {
 	setErr := st.cache.HSetKV(st.ctx, key, fieldValPairs.keyValPairs...)
 	st.Require().NoError(setErr, "No error expected for SetKV")
 	for f, v := range fieldValPairs.keyVals {
-		stringCmd := st.client.HGet(st.ctx, key, f)
+		stringCmd := st.client.HGet(key, f)
 		st.Require().NoError(stringCmd.Err(), "No error expected on getting value")
 		st.Require().EqualValues(v, stringCmd.Val(), "Unexpected value")
 	}

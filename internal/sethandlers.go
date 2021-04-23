@@ -3,7 +3,7 @@ package internal
 import (
 	"context"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis/v7"
 	"github.com/pkg/errors"
 )
 
@@ -43,7 +43,7 @@ func SetMulti(ctx context.Context, opts Options, items ...*Item) (err error) {
 		}
 	}
 	if pipeliner != nil {
-		_, err = pipeliner.Exec(ctx)
+		_, err = pipeliner.ExecContext(ctx)
 	}
 	return err
 }
@@ -67,9 +67,9 @@ func HSetKV(ctx context.Context, opts Options, key string, fieldValPairs ...inte
 		fieldMarshalledValsPairs[idx+1] = string(marshalledBytes)
 	}
 	pipeline := opts.Redis.Pipeline()
-	pipeline.HSet(ctx, key, fieldMarshalledValsPairs...)
-	pipeline.Expire(ctx, key, opts.DefaultTTL)
-	_, pipelineErr := pipeline.Exec(ctx)
+	pipeline.HSet(key, fieldMarshalledValsPairs...)
+	pipeline.Expire(key, opts.DefaultTTL)
+	_, pipelineErr := pipeline.ExecContext(ctx)
 	return pipelineErr
 }
 
@@ -84,21 +84,21 @@ func setOne(ctx context.Context, opts Options, rediser Rediser, item *Item) erro
 	if item.Field == "" {
 
 		if item.IfExists {
-			return rediser.SetXX(ctx, item.Key, b, ttl).Err()
+			return rediser.SetXX(item.Key, b, ttl).Err()
 		}
 
 		if item.IfNotExists {
-			return rediser.SetNX(ctx, item.Key, b, ttl).Err()
+			return rediser.SetNX(item.Key, b, ttl).Err()
 		}
 
-		return rediser.Set(ctx, item.Key, b, ttl).Err()
+		return rediser.Set(item.Key, b, ttl).Err()
 	} else {
 		if item.IfNotExists {
-			rediser.HSetNX(ctx, item.Key, item.Field, string(b))
+			rediser.HSetNX(item.Key, item.Field, string(b))
 		} else {
-			rediser.HSet(ctx, item.Key, item.Field, string(b))
+			rediser.HSet(item.Key, item.Field, string(b))
 		}
-		rediser.Expire(ctx, item.Key, ttl)
+		rediser.Expire(item.Key, ttl)
 	}
 	return nil
 }

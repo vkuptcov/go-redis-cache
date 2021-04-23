@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"syreclabs.com/go/faker"
 
-	cache "github.com/vkuptcov/go-redis-cache/v8"
+	cache "github.com/vkuptcov/go-redis-cache/v7"
 )
 
 type SaveUserSuite struct {
@@ -217,7 +217,7 @@ func (st *SaveUserSuite) TestSaveUser_ConditionalCases() {
 func (st *SaveUserSuite) TestSaveUser_WithCustomTTL() {
 	getTTL := func(k string) time.Duration {
 		st.T().Helper()
-		durationCmd := st.client.TTL(st.ctx, k)
+		durationCmd := st.client.TTL(k)
 		st.Require().NoError(durationCmd.Err(), "No error expected on getting TTL")
 		return durationCmd.Val()
 	}

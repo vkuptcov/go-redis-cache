@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/suite"
 	"syreclabs.com/go/faker"
 
-	cache "github.com/vkuptcov/go-redis-cache/v8"
-	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
+	cache "github.com/vkuptcov/go-redis-cache/v7"
+	"github.com/vkuptcov/go-redis-cache/v7/cachekeys"
 )
 
 type CacheAbsentKeysLoaderSuite struct {
