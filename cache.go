@@ -54,18 +54,26 @@ func (cd *Cache) ExtractCacheKeyWith(f func(it interface{}) (key, field string))
 	return &Cache{opt: opts}
 }
 
+// TransformCacheKeyForDestination changes the data which is used to create a key for a destination map.
+// By default it's created from the same keys which are used as cache keys.
+// If returned skip parameter is true then the returned element is cached but isn't added into destination.
 func (cd *Cache) TransformCacheKeyForDestination(f func(key, field string, val interface{}) (newKey, newField string, skip bool)) *Cache {
 	opts := cd.opt
 	opts.TransformCacheKeyForDestination = f
 	return &Cache{opt: opts}
 }
 
+// AddCacheMissErrors makes all *Get methods include ErrCacheMiss errors into returned *KeyErr
+// for keys which aren't found in cache.
+// By default they aren't included in case we load something in a slice or a map
 func (cd *Cache) AddCacheMissErrors() *Cache {
 	opts := cd.opt
 	opts.AddCacheMissErrors = true
 	return &Cache{opt: opts}
 }
 
+// DisableCacheMissErrorsForSingleElementDst suppresses returning ErrCacheMiss
+// if the desired cache key isn't found and destination is NOT a slice or a map
 func (cd *Cache) DisableCacheMissErrorsForSingleElementDst() *Cache {
 	opts := cd.opt
 	opts.DisableCacheMissErrorsForSingleElementDst = true
