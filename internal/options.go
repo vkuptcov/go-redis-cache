@@ -13,7 +13,7 @@ type Options struct {
 
 	AbsentKeysLoader func(absentKeys ...string) (interface{}, error)
 
-	ItemToCacheKey func(it interface{}) (key, field string)
+	CacheKeyExtractor func(it interface{}) (key, field string)
 
 	TransformCacheKeyForDestination func(key, field string, val interface{}) (newKey, newField string, skip bool)
 

@@ -12,7 +12,7 @@ var ErrCacheMiss = errors.New("cache: key is missing")
 var ErrWrongLoadFnType = errors.New("load function must return slice or key-value map")
 var ErrKeyPairs = errors.New("key-values pairs must be provided")
 var ErrNonStringKey = errors.New("string key expected")
-var ErrItemToCacheKeyFnRequired = errors.New("ItemToCacheKey transformation function must be set or only *Item's can be returned from the loader function")
+var ErrItemToCacheKeyFnRequired = errors.New("CacheKeyExtractor transformation function must be set or only *Item's can be returned from the loader function")
 
 type KeyErr struct {
 	KeysToErrs         map[string]error

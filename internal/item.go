@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// Item represents all the data needed to cache an element
 type Item struct {
 	// Key represents a Redis key which will be used to cache value
 	Key string

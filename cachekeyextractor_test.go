@@ -20,7 +20,7 @@ func (st *CacheWithItemToCacheKeySuite) TestMapKeyTransformation() {
 	}
 	st.Require().NoError(
 		st.cache.
-			WithItemToCacheKey(func(it interface{}) (key, field string) {
+			ExtractCacheKeyWith(func(it interface{}) (key, field string) {
 				return transformKey(it.(string)), ""
 			}).
 			WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {

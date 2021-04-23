@@ -56,7 +56,7 @@ func addAbsentKeys(ctx context.Context, opts Options, dst interface{}, absentKey
 	if data == nil {
 		return nil
 	}
-	dt := newDataTransformer(absentKeys, data, opts.ItemToCacheKey)
+	dt := newDataTransformer(absentKeys, data, opts.CacheKeyExtractor)
 	items, transformErr := dt.getItems()
 	if transformErr != nil {
 		return transformErr

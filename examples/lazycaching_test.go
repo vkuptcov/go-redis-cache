@@ -92,7 +92,7 @@ func (st *LazyCachingSuite) TestLazyCacheSeveralUsers_LoadASliceOfUsers() {
 
 	var dst []*User
 	err := st.cache.
-		WithItemToCacheKey(func(it interface{}) (key, field string) {
+		ExtractCacheKeyWith(func(it interface{}) (key, field string) {
 			u := it.(*User)
 			return userByIDCacheKey(u.ID), ""
 		}).
