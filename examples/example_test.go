@@ -147,3 +147,61 @@ func Example_saveSeveralUsersAndLoadInSlice() {
 	// Output:&{u-1 FirstUserName R&D}
 	// &{u-2 SecondUserName IT}
 }
+
+func Example_loadUsers() {
+	client := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+
+	cacheInst := cache.NewCache(cache.Options{
+		Redis:      client,
+		Marshaller: marshaller.NewMarshaller(&marshallers.JSONMarshaller{}),
+	})
+
+	keyByID := func(id string) string {
+		return cachekeys.CreateKey("usr", id)
+	}
+
+	var loadedUsers []*User
+
+	loadErr := cacheInst.
+		WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
+			users := make([]*User, 0, len(absentKeys))
+			for _, k := range absentKeys {
+				var userID string
+				cachekeys.UnpackKey(k, &userID)
+				users = append(users, &User{
+					ID:         userID,
+					Name:       userID + "-name",
+					Department: userID + "-dep",
+				})
+			}
+			return users, nil
+		}).
+		ExtractCacheKeyWith(func(it interface{}) (key, field string) {
+			// we need this function as the loader function return a slice of objects
+			// so we need to create cache keys out of them
+			// this function isn't needed in case we return a slice of *cache.Item or
+			// a map of keys to a loaded item
+			return keyByID(it.(*User).ID), ""
+		}).
+		Get(
+			context.Background(),
+			&loadedUsers,
+			keyByID("1"),
+			keyByID("2"),
+		)
+
+	sort.Slice(loadedUsers, func(i, j int) bool {
+		return loadedUsers[i].ID < loadedUsers[j].ID
+	})
+	for _, u := range loadedUsers {
+		fmt.Println(u)
+	}
+
+	if loadErr != nil {
+		panic(loadErr)
+	}
+	// Output:&{1 1-name 1-dep}
+	// &{2 2-name 2-dep}
+}
