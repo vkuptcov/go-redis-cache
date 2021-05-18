@@ -1,4 +1,4 @@
-package scenarious
+package scenarios
 
 import (
 	"testing"

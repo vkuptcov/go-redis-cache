@@ -6,7 +6,7 @@ The difference is that this library supports MGet/MSet and HashMap support
 
 == Usage examples
 
-Check link:scenarious[./examples] directory for more use cases
+Check link:scenarios[./scenarios] directory for more use cases
 
 === Cache initialization
 [source,go]
