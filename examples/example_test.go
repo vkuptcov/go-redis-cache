@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/go-redis/redis/v8"
-	cache "github.com/vkuptcov/go-redis-cache/v8"
-	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
-	"github.com/vkuptcov/go-redis-cache/v8/internal/marshaller"
-	"github.com/vkuptcov/go-redis-cache/v8/marshallers"
+	"github.com/go-redis/redis/v7"
+	cache "github.com/vkuptcov/go-redis-cache/v7"
+	"github.com/vkuptcov/go-redis-cache/v7/cachekeys"
+	"github.com/vkuptcov/go-redis-cache/v7/internal/marshaller"
+	"github.com/vkuptcov/go-redis-cache/v7/marshallers"
 )
 
 type User struct {

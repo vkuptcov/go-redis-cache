@@ -37,7 +37,7 @@ func SetMulti(ctx context.Context, opts Options, items ...*Item) (err error) {
 		r = pipeliner
 	}
 	for _, item := range items {
-		err = setOne(ctx, opts, r, item)
+		err = setOne(opts, r, item)
 		if err != nil {
 			return err
 		}
@@ -73,7 +73,7 @@ func HSetKV(ctx context.Context, opts Options, key string, fieldValPairs ...inte
 	return pipelineErr
 }
 
-func setOne(ctx context.Context, opts Options, rediser Rediser, item *Item) error {
+func setOne(opts Options, rediser Rediser, item *Item) error {
 	b, marshalErr := opts.Marshaller.Marshal(item.Value)
 	if marshalErr != nil {
 		return marshalErr
