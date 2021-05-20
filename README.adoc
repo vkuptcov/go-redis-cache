@@ -2,11 +2,11 @@
 
 This library is inspired by https://github.com/go-redis/cache
 
-The difference is that this library supports MGet/MSet and HashMap support
+The difference is that this library supports MGet/MSet functionality (via pipelining) and HashMap support.
 
 == Usage examples
 
-Check link:examples[./examples] directory for more use cases
+Check link:scenarios[./scenarios] directory for more use cases
 
 === Cache initialization
 [source,go]
@@ -23,7 +23,7 @@ cache = cache.NewCache(cache.Options{
 	})
 ----
 
-=== Save items to cache
+=== Save items to cache and load them
 [source,go]
 ----
 type User struct {
@@ -32,56 +32,193 @@ type User struct {
 	Department string
 }
 
-// user1, user2, ..., userN initialization
-cache.WithTTL(1*time.Minute).
-    Set(st.ctx,
-    	&cache.Item{
-            Key:   userByIDCacheKey(user1.ID),
-            Value: user1,
-            TTL:   5 * time.Second,
-        },
-    	&cache.Item{
-            Key:   userByIDCacheKey(user2.ID),
-            Value: user2,
-        },
-    	&cache.Item{
-            Key:   userByIDCacheKey(user2.ID),
-            Value: user2,
-            TTL: 10 * time.Second,
-        },
-    )
+client := redis.NewClient(&redis.Options{
+    Addr: "localhost:6379",
+})
+
+cacheInst := cache.NewCache(cache.Options{
+    Redis:      client,
+    Marshaller: marshaller.NewMarshaller(&marshallers.JSONMarshaller{}),
+})
+
+user := &User{
+    ID:         "u-1",
+    Name:       "FirstUserName",
+    Department: "R&D",
+}
+
+keyByID := cachekeys.CreateKey("usr", user.ID)
+keyByDepartment := cachekeys.CreateKey("usr-by-department", user.Department)
+
+// store user with a key derived for their id
+// store the same user with a key derived from department
+saveErr := cacheInst.Set(
+    context.Background(),
+    &cache.Item{
+        Key:   keyByID,
+        Value: user,
+    },
+    &cache.Item{
+        Key:   keyByDepartment,
+        Field: user.ID,
+        Value: user,
+    },
+)
+if saveErr != nil {
+    panic(saveErr)
+}
+
+var loadedUserByID User
+var loadedUserByDepartment User
+// get user by id
+loadByIDErr := cacheInst.Get(
+    context.Background(),
+    &loadedUserByID,
+    keyByID,
+)
+if loadByIDErr != nil {
+    panic(loadByIDErr)
+}
+
+// get user by department
+loadByDepartmentErr := cacheInst.HGetFieldsForKey(
+    context.Background(),
+    &loadedUserByDepartment,
+    keyByDepartment,
+    user.ID,
+)
+if loadByDepartmentErr != nil {
+    panic(loadByDepartmentErr)
+}
+
+fmt.Println(loadedUserByID)
+fmt.Println(loadedUserByDepartment)
+fmt.Println(loadedUserByDepartment == loadedUserByID)
+
+// Output: {u-1 FirstUserName R&D}
+// {u-1 FirstUserName R&D}
+// true
 ----
 
-=== Load items from cache
+=== Load several items from cache
 [source,go]
 ----
-// single user
-var user *User
-cache.Get(ctx, &user, userByIDCacheKey(userID))
+client := redis.NewClient(&redis.Options{
+    Addr: "localhost:6379",
+})
 
-// several users into a slice
-var users []*User
-cache.Get(ctx, &users, userByIDCacheKey(firstID), userByIDCacheKey(secondID))
+cacheInst := cache.NewCache(cache.Options{
+    Redis:      client,
+    Marshaller: marshaller.NewMarshaller(&marshallers.JSONMarshaller{}),
+})
 
-// several users into a map
-var usersByID map[string]*User
-cache.
-    TransformCacheKeyForDestination(func(key, _ string, _ interface{}) (string, string, bool) {
-        var userID string
-        cachekeys.UnpackKey(key, &userID)
-        return userID, "", false
-    }).
-	Get(ctx, &usersByID, userByIDCacheKey(firstID), userByIDCacheKey(secondID))
+keyByID := func(id string) string {
+    return cachekeys.CreateKey("usr", id)
+}
+
+firstUser := &User{
+    ID:         "u-1",
+    Name:       "FirstUserName",
+    Department: "R&D",
+}
+secondUser := &User{
+    ID:         "u-2",
+    Name:       "SecondUserName",
+    Department: "IT",
+}
+
+saveErr := cacheInst.Set(
+    context.Background(),
+    &cache.Item{
+        Key:   keyByID(firstUser.ID),
+        Value: firstUser,
+    },
+    &cache.Item{
+        Key:   keyByID(secondUser.ID),
+        Value: secondUser,
+    },
+)
+if saveErr != nil {
+    panic(saveErr)
+}
+
+var loadedUsers []*User
+
+loadErr := cacheInst.Get(
+    context.Background(),
+    &loadedUsers,
+    keyByID(firstUser.ID),
+    keyByID(secondUser.ID),
+)
+if loadErr != nil {
+    panic(loadErr)
+}
+sort.Slice(loadedUsers, func(i, j int) bool {
+    return loadedUsers[i].ID < loadedUsers[j].ID
+})
+for _, u := range loadedUsers {
+    fmt.Println(u)
+}
+// Output:&{u-1 FirstUserName R&D}
+// &{u-2 SecondUserName IT}
 ----
 
 === Load items from cache or from other source
 [source,go]
 ----
-var user *User
-cache.
+client := redis.NewClient(&redis.Options{
+    Addr: "localhost:6379",
+})
+
+cacheInst := cache.NewCache(cache.Options{
+    Redis:      client,
+    Marshaller: marshaller.NewMarshaller(&marshallers.JSONMarshaller{}),
+})
+
+keyByID := func(id string) string {
+    return cachekeys.CreateKey("usr", id)
+}
+
+var loadedUsers []*User
+
+loadErr := cacheInst.
     WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
-    	// load user from DB
-        return loadedUser, nil
-    }.
-	Get(ctx, &user, userByIDCacheKey(userID))
+        users := make([]*User, 0, len(absentKeys))
+        for _, k := range absentKeys {
+            var userID string
+            cachekeys.UnpackKey(k, &userID)
+            users = append(users, &User{
+                ID:         userID,
+                Name:       userID + "-name",
+                Department: userID + "-dep",
+            })
+        }
+        return users, nil
+    }).
+    ExtractCacheKeyWith(func(it interface{}) (key, field string) {
+        // we need this function as the loader function return a slice of objects
+        // so we need to create cache keys out of them
+        // this function isn't needed in case we return a slice of *cache.Item or
+        // a map of keys to a loaded item
+        return keyByID(it.(*User).ID), ""
+    }).
+    Get(
+        context.Background(),
+        &loadedUsers,
+        keyByID("1"),
+        keyByID("2"),
+    )
+
+sort.Slice(loadedUsers, func(i, j int) bool {
+    return loadedUsers[i].ID < loadedUsers[j].ID
+})
+for _, u := range loadedUsers {
+    fmt.Println(u)
+}
+
+if loadErr != nil {
+    panic(loadErr)
+}
+// Output:&{1 1-name 1-dep}
+// &{2 2-name 2-dep}
 ----
