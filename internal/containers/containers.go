@@ -4,8 +4,6 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
-
-	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
 )
 
 type Container interface {
@@ -36,27 +34,6 @@ func (b baseContainer) dstElementToValue(dstEl interface{}) reflect.Value {
 		val = reflect.Indirect(val)
 	}
 	return val
-}
-
-type mapContainer struct {
-	*baseContainer
-}
-
-func (m mapContainer) AddElementWithSubkey(key, subkey string, value interface{}) {
-	if subkey != "" {
-		key = cachekeys.KeyWithField(key, subkey)
-	}
-	m.AddElement(key, value)
-}
-
-func (m mapContainer) AddElement(key string, value interface{}) {
-	m.cntValue.SetMapIndex(reflect.ValueOf(key), m.dstElementToValue(value))
-}
-
-func (m mapContainer) InitWithSize(size int) {
-	if m.cntValue.IsNil() {
-		m.cntValue.Set(reflect.MakeMapWithSize(m.cntType, size))
-	}
 }
 
 func NewContainer(dst interface{}) (Container, error) {
@@ -99,5 +76,3 @@ func NewContainer(dst interface{}) (Container, error) {
 	}
 	return result, nil
 }
-
-var _ Container = mapContainer{}
