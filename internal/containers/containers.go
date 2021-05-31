@@ -11,6 +11,7 @@ type Container interface {
 	AddElementWithSubkey(key, subkey string, value interface{})
 	AddElement(key string, value interface{})
 	InitWithSize(size int)
+	IsMultiElementContainer() bool
 }
 
 type baseContainer struct {
@@ -26,6 +27,10 @@ type baseContainer struct {
 func (b baseContainer) DstEl() interface{} {
 	elementValue := reflect.New(b.elementType)
 	return elementValue.Interface()
+}
+
+func (b baseContainer) IsMultiElementContainer() bool {
+	return true
 }
 
 func (b baseContainer) dstElementToValue(dstEl interface{}) reflect.Value {
@@ -63,7 +68,7 @@ func NewContainer(dst interface{}) (Container, error) {
 		base.cntType = reflectValue.Type()
 		result = sliceContainer{baseContainer: base}
 	default:
-		return SingleElement{
+		return singleElement{
 			assignableValue: base.assignableValue,
 			dst:             dst,
 		}, nil

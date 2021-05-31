@@ -4,20 +4,20 @@ import (
 	"reflect"
 )
 
-type SingleElement struct {
+type singleElement struct {
 	dst             interface{}
 	assignableValue reflect.Value
 }
 
-func (s SingleElement) DstEl() interface{} {
+func (s singleElement) DstEl() interface{} {
 	return s.dst
 }
 
-func (s SingleElement) AddElementWithSubkey(_, _ string, value interface{}) {
+func (s singleElement) AddElementWithSubkey(_, _ string, value interface{}) {
 	s.AddElement("", value)
 }
 
-func (s SingleElement) AddElement(_ string, value interface{}) {
+func (s singleElement) AddElement(_ string, value interface{}) {
 	val := reflect.ValueOf(value)
 	assignableType := s.assignableValue.Type()
 	if assignableType.AssignableTo(val.Type()) {
@@ -27,6 +27,10 @@ func (s SingleElement) AddElement(_ string, value interface{}) {
 	}
 }
 
-func (s SingleElement) InitWithSize(_ int) {}
+func (s singleElement) IsMultiElementContainer() bool {
+	return false
+}
 
-var _ Container = SingleElement{}
+func (s singleElement) InitWithSize(_ int) {}
+
+var _ Container = singleElement{}
