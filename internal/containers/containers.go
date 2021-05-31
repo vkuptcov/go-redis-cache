@@ -59,25 +59,6 @@ func (m mapContainer) InitWithSize(size int) {
 	}
 }
 
-type sliceContainer struct {
-	*baseContainer
-}
-
-func (s sliceContainer) AddElementWithSubkey(key, _ string, value interface{}) {
-	s.AddElement(key, value)
-}
-
-func (s sliceContainer) AddElement(_ string, value interface{}) {
-	s.cntValue = reflect.Append(s.cntValue, s.dstElementToValue(value))
-	s.assignableValue.Set(s.cntValue)
-}
-
-func (s sliceContainer) InitWithSize(size int) {
-	if s.cntValue.IsNil() {
-		s.cntValue.Set(reflect.MakeSlice(s.cntType, 0, size))
-	}
-}
-
 func NewContainer(dst interface{}) (Container, error) {
 	reflectValue := reflect.Indirect(reflect.ValueOf(dst))
 	var result Container
@@ -120,4 +101,3 @@ func NewContainer(dst interface{}) (Container, error) {
 }
 
 var _ Container = mapContainer{}
-var _ Container = sliceContainer{}
