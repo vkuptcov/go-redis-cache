@@ -147,6 +147,18 @@ func (st *LoadUserSuite) TestLoadSpecificFields() {
 	})), "non-matched users loaded")
 }
 
+func (st *LoadUserSuite) TestLoadIntoAMapOfMaps() {
+	var dst map[string]map[string]*User
+
+	err := st.cache.HGetAll(st.ctx, &dst, st.departmentsKeys...)
+
+	st.Require().NoError(err, "No error expected on loading from cache")
+	for _, u := range st.users {
+		k := userByDepartmentCacheKey(u.Department)
+		st.Require().EqualValuesf(u, dst[k][string(u.ID)], "Non-equal users for key %q and field %q", k, u.ID)
+	}
+}
+
 func TestLoadUserSuite(t *testing.T) {
 	suite.Run(t, &LoadUserSuite{})
 }
