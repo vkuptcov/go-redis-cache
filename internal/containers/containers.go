@@ -63,7 +63,18 @@ func NewContainer(dst interface{}) (Container, error) {
 			return nil, errors.Errorf("dst key type must be a string, %v given", keyType.Kind())
 		}
 		base.cntType = mapType
-		result = mapContainer{baseContainer: base}
+		if mapType.Elem().Kind() != reflect.Map {
+			result = mapContainer{baseContainer: base}
+		} else {
+			result = mapOfMapsContainer{baseContainer: base}
+			base.elementType = mapType.Elem().Elem()
+			if base.elementType.Kind() == reflect.Ptr {
+				// get the dst that the pointer elementType points to.
+				base.elementType = base.elementType.Elem()
+				base.isElementAPointer = true
+			}
+			return result, nil
+		}
 	case reflect.Slice:
 		base.cntType = reflectValue.Type()
 		result = sliceContainer{baseContainer: base}
