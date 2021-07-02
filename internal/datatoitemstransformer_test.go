@@ -126,6 +126,80 @@ func TestDataTransformer_GetItems(t *testing.T) {
 				},
 			},
 		},
+		{
+			testCase:   "return a map of elements without fields",
+			absentKeys: []string{"key1", "key2"},
+			data: map[string]string{
+				"key1": "val1",
+				"key2": "val2",
+			},
+			expectedItems: []*Item{
+				{
+					Key:   "key1",
+					Value: "val1",
+				},
+				{
+					Key:   "key2",
+					Value: "val2",
+				},
+			},
+		},
+		{
+			testCase:   "return a map of elements with fields",
+			absentKeys: []string{"key1", "key2"},
+			data: map[string]string{
+				"key1/f1":  "val_f1",
+				"key1/f2":  "val_f2",
+				"key2/f44": "val2_f44",
+			},
+			expectedItems: []*Item{
+				{
+					Key:   "key1",
+					Field: "f1",
+					Value: "val_f1",
+				},
+				{
+					Key:   "key1",
+					Field: "f2",
+					Value: "val_f2",
+				},
+				{
+					Key:   "key2",
+					Field: "f44",
+					Value: "val2_f44",
+				},
+			},
+		},
+		{
+			testCase:   "return a map of maps",
+			absentKeys: []string{"key1", "key2"},
+			data: map[string]map[string]string{
+				"key1": {
+					"f1": "val_f1",
+					"f2": "val_f2",
+				},
+				"key2": {
+					"f44": "val2_f44",
+				},
+			},
+			expectedItems: []*Item{
+				{
+					Key:   "key1",
+					Field: "f1",
+					Value: "val_f1",
+				},
+				{
+					Key:   "key1",
+					Field: "f2",
+					Value: "val_f2",
+				},
+				{
+					Key:   "key2",
+					Field: "f44",
+					Value: "val2_f44",
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {

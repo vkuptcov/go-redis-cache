@@ -47,26 +47,51 @@ func (mt mapTransformer) getItems() ([]*Item, error) {
 	if keyType.Kind() != reflect.String {
 		return nil, errors.Wrapf(ErrNonStringKey, "dst key type must be a string, %v given", keyType.Kind())
 	}
+	isMapOfMaps := mapType.Elem().Kind() == reflect.Map
 	iter := v.MapRange()
 	items := make([]*Item, 0, v.Len())
 	for iter.Next() {
-		val := iter.Value().Interface()
-		if item, ok := val.(*Item); ok {
-			// @todo add possibility to use the key from the map
-			items = append(items, item)
-		} else {
-			var key, field string
-			if mt.itemToKeyFn != nil {
-				key, field = mt.itemToKeyFn(val)
-			} else {
-				mapKey := iter.Key().String()
-				key, field = cachekeys.SplitKeyAndField(mapKey)
+		if isMapOfMaps {
+			internalIter := iter.Value().MapRange()
+			for internalIter.Next() {
+				val := internalIter.Value().Interface()
+				if item, ok := val.(*Item); ok {
+					// @todo add possibility to use the key from the map
+					items = append(items, item)
+				} else {
+					var key, field string
+					if mt.itemToKeyFn != nil {
+						key, field = mt.itemToKeyFn(val)
+					} else {
+						key = iter.Key().String()
+						field = internalIter.Key().String()
+					}
+					items = append(items, &Item{
+						Key:   key,
+						Field: field,
+						Value: val,
+					})
+				}
 			}
-			items = append(items, &Item{
-				Key:   key,
-				Field: field,
-				Value: val,
-			})
+		} else {
+			val := iter.Value().Interface()
+			if item, ok := val.(*Item); ok {
+				// @todo add possibility to use the key from the map
+				items = append(items, item)
+			} else {
+				var key, field string
+				if mt.itemToKeyFn != nil {
+					key, field = mt.itemToKeyFn(val)
+				} else {
+					mapKey := iter.Key().String()
+					key, field = cachekeys.SplitKeyAndField(mapKey)
+				}
+				items = append(items, &Item{
+					Key:   key,
+					Field: field,
+					Value: val,
+				})
+			}
 		}
 	}
 	return items, nil
