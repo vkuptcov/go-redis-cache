@@ -87,6 +87,23 @@ func (st *GetMethodsSuite) TestHGetAll() {
 		}
 		checkDst(st.T(), expectedData, dst, "Unexpected dst")
 	})
+	st.Run("load into a map of maps", func() {
+		var dst map[string]map[string]string
+		st.Require().NoError(
+			st.cache.HGetAll(st.ctx, &dst, keys...),
+			"No error expected on getting keysToLoad",
+		)
+		expectedData := map[string]map[string]string{}
+		for k, d := range hashMapData {
+			for f, v := range d.keyVals {
+				if _, exists := expectedData[k]; !exists {
+					expectedData[k] = map[string]string{}
+				}
+				expectedData[k][f] = v
+			}
+		}
+		checkDst(st.T(), expectedData, dst, "Unexpected dst")
+	})
 }
 
 func (st *GetMethodsSuite) TestHGetKeysAndFields() {
