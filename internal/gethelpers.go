@@ -5,8 +5,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
-
-	"github.com/vkuptcov/go-redis-cache/v8/internal/containers"
+	containers2 "github.com/vkuptcov/go-redis-cache/v8/containers"
 )
 
 func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{}, pipelinerFiller func(pipeliner redis.Pipeliner)) error {
@@ -19,7 +18,7 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 	// pipeliner errs will be checked for all the keys
 	cmds, _ := pipeliner.Exec(ctx)
 
-	container, containerInitErr := containers.NewContainer(dst)
+	container, containerInitErr := containers2.NewContainer(dst)
 	if containerInitErr != nil {
 		return containerInitErr
 	}
@@ -45,7 +44,7 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 	return nil
 }
 
-func handleCmds(opts Options, cmds []redis.Cmder, container containers.Container) (byKeysErr *KeyErr) {
+func handleCmds(opts Options, cmds []redis.Cmder, container containers2.Container) (byKeysErr *KeyErr) {
 	byKeysErr = &KeyErr{
 		KeysToErrs:         map[string]error{},
 		CacheMissErrsCount: 0,
@@ -77,7 +76,7 @@ func handleCmds(opts Options, cmds []redis.Cmder, container containers.Container
 	return byKeysErr
 }
 
-func handleSliceCmd(opts Options, typedCmd *redis.SliceCmd, container containers.Container, key string, byKeysErr *KeyErr) {
+func handleSliceCmd(opts Options, typedCmd *redis.SliceCmd, container containers2.Container, key string, byKeysErr *KeyErr) {
 	fields := typedCmd.Args()[2:]
 	for fieldIdx, val := range typedCmd.Val() {
 		field := fields[fieldIdx].(string)
@@ -106,7 +105,7 @@ func handleSliceCmd(opts Options, typedCmd *redis.SliceCmd, container containers
 	}
 }
 
-func handleStringStringMapCmd(opts Options, typedCmd *redis.StringStringMapCmd, container containers.Container, key string, byKeysErr *KeyErr) {
+func handleStringStringMapCmd(opts Options, typedCmd *redis.StringStringMapCmd, container containers2.Container, key string, byKeysErr *KeyErr) {
 	for field, val := range typedCmd.Val() {
 		decodeErr := decodeAndAddElementToContainer(opts, container, key, field, val)
 		if decodeErr != nil {
@@ -119,7 +118,7 @@ func handleStringStringMapCmd(opts Options, typedCmd *redis.StringStringMapCmd, 
 	}
 }
 
-func handleStringCmd(opts Options, typedCmd *redis.StringCmd, container containers.Container, key string, byKeysErr *KeyErr) {
+func handleStringCmd(opts Options, typedCmd *redis.StringCmd, container containers2.Container, key string, byKeysErr *KeyErr) {
 	decodeErr := decodeAndAddElementToContainer(opts, container, key, "", typedCmd.Val())
 	if decodeErr != nil {
 		byKeysErr.AddErrorForKey(key, decodeErr)

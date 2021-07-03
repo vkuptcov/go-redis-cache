@@ -5,8 +5,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
-
-	"github.com/vkuptcov/go-redis-cache/v8/internal/containers"
+	containers2 "github.com/vkuptcov/go-redis-cache/v8/containers"
 )
 
 func Get(ctx context.Context, opts Options, dst interface{}, keys []string) error {
@@ -61,7 +60,7 @@ func addAbsentKeys(ctx context.Context, opts Options, dst interface{}, absentKey
 	if transformErr != nil {
 		return transformErr
 	}
-	container, containerInitErr := containers.NewContainer(dst)
+	container, containerInitErr := containers2.NewContainer(dst)
 	if containerInitErr != nil {
 		return containerInitErr
 	}
@@ -71,7 +70,7 @@ func addAbsentKeys(ctx context.Context, opts Options, dst interface{}, absentKey
 	return SetMulti(ctx, opts, items...)
 }
 
-func decodeAndAddElementToContainer(opts Options, container containers.Container, key, subkey, marshalledVal string) error {
+func decodeAndAddElementToContainer(opts Options, container containers2.Container, key, subkey, marshalledVal string) error {
 	dstEl := container.DstEl()
 	unmarshalErr := opts.Marshaller.Unmarshal([]byte(marshalledVal), dstEl)
 	if unmarshalErr != nil {
@@ -81,7 +80,7 @@ func decodeAndAddElementToContainer(opts Options, container containers.Container
 	return nil
 }
 
-func addElementToContainer(opts Options, container containers.Container, key, subkey string, val interface{}) {
+func addElementToContainer(opts Options, container containers2.Container, key, subkey string, val interface{}) {
 	var skip bool
 	if opts.TransformCacheKeyForDestination != nil {
 		key, subkey, skip = opts.TransformCacheKeyForDestination(key, subkey, val)
