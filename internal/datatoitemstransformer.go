@@ -50,48 +50,39 @@ func (mt mapTransformer) getItems() ([]*Item, error) {
 	isMapOfMaps := mapType.Elem().Kind() == reflect.Map
 	iter := v.MapRange()
 	items := make([]*Item, 0, v.Len())
+
+	addItem := func(currentIter *reflect.MapIter, keyExtractor func() (key, field string)) {
+		val := currentIter.Value().Interface()
+		if item, ok := val.(*Item); ok {
+			// @todo add possibility to use the key from the map
+			items = append(items, item)
+		} else {
+			var key, field string
+			if mt.itemToKeyFn != nil {
+				key, field = mt.itemToKeyFn(val)
+			} else {
+				key, field = keyExtractor()
+			}
+			items = append(items, &Item{
+				Key:   key,
+				Field: field,
+				Value: val,
+			})
+		}
+	}
+
 	for iter.Next() {
 		if isMapOfMaps {
 			internalIter := iter.Value().MapRange()
 			for internalIter.Next() {
-				val := internalIter.Value().Interface()
-				if item, ok := val.(*Item); ok {
-					// @todo add possibility to use the key from the map
-					items = append(items, item)
-				} else {
-					var key, field string
-					if mt.itemToKeyFn != nil {
-						key, field = mt.itemToKeyFn(val)
-					} else {
-						key = iter.Key().String()
-						field = internalIter.Key().String()
-					}
-					items = append(items, &Item{
-						Key:   key,
-						Field: field,
-						Value: val,
-					})
-				}
-			}
-		} else {
-			val := iter.Value().Interface()
-			if item, ok := val.(*Item); ok {
-				// @todo add possibility to use the key from the map
-				items = append(items, item)
-			} else {
-				var key, field string
-				if mt.itemToKeyFn != nil {
-					key, field = mt.itemToKeyFn(val)
-				} else {
-					mapKey := iter.Key().String()
-					key, field = cachekeys.SplitKeyAndField(mapKey)
-				}
-				items = append(items, &Item{
-					Key:   key,
-					Field: field,
-					Value: val,
+				addItem(internalIter, func() (key, field string) {
+					return iter.Key().String(), internalIter.Key().String()
 				})
 			}
+		} else {
+			addItem(iter, func() (key, field string) {
+				return cachekeys.SplitKeyAndField(iter.Key().String())
+			})
 		}
 	}
 	return items, nil
