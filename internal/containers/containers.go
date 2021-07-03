@@ -4,8 +4,6 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
-
-	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
 )
 
 type Container interface {
@@ -13,6 +11,7 @@ type Container interface {
 	AddElementWithSubkey(key, subkey string, value interface{})
 	AddElement(key string, value interface{})
 	InitWithSize(size int)
+	IsMultiElementContainer() bool
 }
 
 type baseContainer struct {
@@ -30,6 +29,10 @@ func (b baseContainer) DstEl() interface{} {
 	return elementValue.Interface()
 }
 
+func (b baseContainer) IsMultiElementContainer() bool {
+	return true
+}
+
 func (b baseContainer) dstElementToValue(dstEl interface{}) reflect.Value {
 	val := reflect.ValueOf(dstEl)
 	if !b.isElementAPointer {
@@ -37,71 +40,6 @@ func (b baseContainer) dstElementToValue(dstEl interface{}) reflect.Value {
 	}
 	return val
 }
-
-type mapContainer struct {
-	*baseContainer
-}
-
-func (m mapContainer) AddElementWithSubkey(key, subkey string, value interface{}) {
-	if subkey != "" {
-		key = cachekeys.KeyWithField(key, subkey)
-	}
-	m.AddElement(key, value)
-}
-
-func (m mapContainer) AddElement(key string, value interface{}) {
-	m.cntValue.SetMapIndex(reflect.ValueOf(key), m.dstElementToValue(value))
-}
-
-func (m mapContainer) InitWithSize(size int) {
-	if m.cntValue.IsNil() {
-		m.cntValue.Set(reflect.MakeMapWithSize(m.cntType, size))
-	}
-}
-
-type sliceContainer struct {
-	*baseContainer
-}
-
-func (s sliceContainer) AddElementWithSubkey(key, _ string, value interface{}) {
-	s.AddElement(key, value)
-}
-
-func (s sliceContainer) AddElement(_ string, value interface{}) {
-	s.cntValue = reflect.Append(s.cntValue, s.dstElementToValue(value))
-	s.assignableValue.Set(s.cntValue)
-}
-
-func (s sliceContainer) InitWithSize(size int) {
-	if s.cntValue.IsNil() {
-		s.cntValue.Set(reflect.MakeSlice(s.cntType, 0, size))
-	}
-}
-
-type SingleElement struct {
-	dst             interface{}
-	assignableValue reflect.Value
-}
-
-func (s SingleElement) DstEl() interface{} {
-	return s.dst
-}
-
-func (s SingleElement) AddElementWithSubkey(_, _ string, value interface{}) {
-	s.AddElement("", value)
-}
-
-func (s SingleElement) AddElement(_ string, value interface{}) {
-	val := reflect.ValueOf(value)
-	assignableType := s.assignableValue.Type()
-	if assignableType.AssignableTo(val.Type()) {
-		s.assignableValue.Set(reflect.ValueOf(value))
-	} else {
-		s.assignableValue.Set(reflect.Indirect(val))
-	}
-}
-
-func (s SingleElement) InitWithSize(_ int) {}
 
 func NewContainer(dst interface{}) (Container, error) {
 	reflectValue := reflect.Indirect(reflect.ValueOf(dst))
@@ -125,12 +63,23 @@ func NewContainer(dst interface{}) (Container, error) {
 			return nil, errors.Errorf("dst key type must be a string, %v given", keyType.Kind())
 		}
 		base.cntType = mapType
-		result = mapContainer{baseContainer: base}
+		if mapType.Elem().Kind() != reflect.Map {
+			result = mapContainer{baseContainer: base}
+		} else {
+			result = mapOfMapsContainer{baseContainer: base}
+			base.elementType = mapType.Elem().Elem()
+			if base.elementType.Kind() == reflect.Ptr {
+				// get the dst that the pointer elementType points to.
+				base.elementType = base.elementType.Elem()
+				base.isElementAPointer = true
+			}
+			return result, nil
+		}
 	case reflect.Slice:
 		base.cntType = reflectValue.Type()
 		result = sliceContainer{baseContainer: base}
 	default:
-		return SingleElement{
+		return singleElement{
 			assignableValue: base.assignableValue,
 			dst:             dst,
 		}, nil
@@ -143,7 +92,3 @@ func NewContainer(dst interface{}) (Container, error) {
 	}
 	return result, nil
 }
-
-var _ Container = mapContainer{}
-var _ Container = sliceContainer{}
-var _ Container = SingleElement{}

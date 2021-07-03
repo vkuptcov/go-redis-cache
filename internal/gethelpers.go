@@ -24,7 +24,7 @@ func execAndAddIntoContainer(ctx context.Context, opts Options, dst interface{},
 		return containerInitErr
 	}
 	container.InitWithSize(len(cmds))
-	_, isSingleElementContainer := container.(containers.SingleElement)
+	isSingleElementContainer := !container.IsMultiElementContainer()
 	// in case we don't have the desired element in cache and we want just to load a single one,
 	// it's convenient to return a single cache miss error instead of KeyErr because the key is already known
 	returnErrCacheMiss := isSingleElementContainer &&
