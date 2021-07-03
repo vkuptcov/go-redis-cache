@@ -121,3 +121,7 @@ func (cd *Cache) HGetFieldsForKey(ctx context.Context, dst interface{}, key stri
 func (cd *Cache) HGetKeysAndFields(ctx context.Context, dst interface{}, keysToFields map[string][]string) error {
 	return internal.HGetFields(ctx, cd.opt, dst, keysToFields)
 }
+
+func (cd *Cache) Delete(ctx context.Context, keys ...string) error {
+	return internal.Delete(ctx, cd.opt, keys)
+}
