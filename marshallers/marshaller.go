@@ -1,4 +1,4 @@
-package internal
+package marshallers
 
 type Marshaller interface {
 	Marshal(value interface{}) ([]byte, error)

@@ -8,7 +8,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	cache "github.com/vkuptcov/go-redis-cache/v8"
 	"github.com/vkuptcov/go-redis-cache/v8/cachekeys"
-	"github.com/vkuptcov/go-redis-cache/v8/internal/marshaller"
 	"github.com/vkuptcov/go-redis-cache/v8/marshallers"
 )
 
@@ -25,7 +24,7 @@ func Example_saveAndGetUser() {
 
 	cacheInst := cache.NewCache(cache.Options{
 		Redis:      client,
-		Marshaller: marshaller.NewMarshaller(&marshallers.JSONMarshaller{}),
+		Marshaller: marshallers.NewMarshaller(&marshallers.JSONMarshaller{}),
 	})
 
 	user := &User{
@@ -94,7 +93,7 @@ func Example_saveSeveralUsersAndLoadInSlice() {
 
 	cacheInst := cache.NewCache(cache.Options{
 		Redis:      client,
-		Marshaller: marshaller.NewMarshaller(&marshallers.JSONMarshaller{}),
+		Marshaller: marshallers.NewMarshaller(&marshallers.JSONMarshaller{}),
 	})
 
 	keyByID := func(id string) string {
@@ -155,7 +154,7 @@ func Example_loadUsers() {
 
 	cacheInst := cache.NewCache(cache.Options{
 		Redis:      client,
-		Marshaller: marshaller.NewMarshaller(&marshallers.JSONMarshaller{}),
+		Marshaller: marshallers.NewMarshaller(&marshallers.JSONMarshaller{}),
 	})
 
 	keyByID := func(id string) string {
