@@ -10,14 +10,10 @@ type mapContainer struct {
 	*baseContainer
 }
 
-func (m mapContainer) AddElementWithSubkey(key, subkey string, value interface{}) {
-	if subkey != "" {
-		key = cachekeys.KeyWithField(key, subkey)
+func (m mapContainer) AddElement(key, field string, value interface{}) {
+	if field != "" {
+		key = cachekeys.KeyWithField(key, field)
 	}
-	m.AddElement(key, value)
-}
-
-func (m mapContainer) AddElement(key string, value interface{}) {
 	m.cntValue.SetMapIndex(reflect.ValueOf(key), m.dstElementToValue(value))
 }
 

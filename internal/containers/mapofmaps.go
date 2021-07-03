@@ -8,18 +8,14 @@ type mapOfMapsContainer struct {
 	*baseContainer
 }
 
-func (m mapOfMapsContainer) AddElementWithSubkey(key, subkey string, value interface{}) {
+func (m mapOfMapsContainer) AddElement(key, field string, value interface{}) {
 	keyValue := reflect.ValueOf(key)
 	dstMap := m.cntValue.MapIndex(keyValue)
 	if !dstMap.IsValid() || dstMap.IsNil() {
 		dstMap = reflect.MakeMapWithSize(m.cntType.Elem(), 1)
 	}
-	dstMap.SetMapIndex(reflect.ValueOf(subkey), m.dstElementToValue(value))
+	dstMap.SetMapIndex(reflect.ValueOf(field), m.dstElementToValue(value))
 	m.cntValue.SetMapIndex(keyValue, dstMap)
-}
-
-func (m mapOfMapsContainer) AddElement(key string, value interface{}) {
-	m.AddElementWithSubkey(key, "", value)
 }
 
 func (m mapOfMapsContainer) InitWithSize(size int) {

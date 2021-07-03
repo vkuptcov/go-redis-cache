@@ -8,8 +8,7 @@ import (
 
 type Container interface {
 	DstEl() interface{}
-	AddElementWithSubkey(key, subkey string, value interface{})
-	AddElement(key string, value interface{})
+	AddElement(key string, field string, value interface{})
 	InitWithSize(size int)
 	IsMultiElementContainer() bool
 }

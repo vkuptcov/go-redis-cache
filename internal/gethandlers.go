@@ -87,6 +87,6 @@ func addElementToContainer(opts Options, container containers.Container, key, su
 		key, subkey, skip = opts.TransformCacheKeyForDestination(key, subkey, val)
 	}
 	if !skip {
-		container.AddElementWithSubkey(key, subkey, val)
+		container.AddElement(key, subkey, val)
 	}
 }
