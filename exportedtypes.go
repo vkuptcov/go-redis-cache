@@ -2,9 +2,10 @@ package cache
 
 import (
 	"github.com/vkuptcov/go-redis-cache/v8/internal"
+	"github.com/vkuptcov/go-redis-cache/v8/marshallers"
 )
 
-type Marshaller internal.Marshaller
+type Marshaller marshallers.Marshaller
 
 type Item = internal.Item
 

@@ -1,17 +1,15 @@
-package marshaller
+package marshallers
 
 import (
 	"reflect"
 	"strconv"
-
-	"github.com/vkuptcov/go-redis-cache/v8/internal"
 )
 
 type baseMarshaller struct {
-	customMarshaller internal.Marshaller
+	customMarshaller Marshaller
 }
 
-func NewMarshaller(customMarshaller internal.Marshaller) internal.Marshaller {
+func NewMarshaller(customMarshaller Marshaller) Marshaller {
 	return &baseMarshaller{customMarshaller: customMarshaller}
 }
 

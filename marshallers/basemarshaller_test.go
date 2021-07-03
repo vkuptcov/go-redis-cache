@@ -1,4 +1,4 @@
-package marshaller
+package marshallers
 
 import (
 	"math"
@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
-
-	"github.com/vkuptcov/go-redis-cache/v8/marshallers"
 )
 
 type structureToSerialize struct {
@@ -21,7 +19,7 @@ type MarshalUnMarshalSuite struct {
 
 func (st *MarshalUnMarshalSuite) SetupSuite() {
 	st.marshaller = &baseMarshaller{
-		customMarshaller: &marshallers.JSONMarshaller{},
+		customMarshaller: &JSONMarshaller{},
 	}
 }
 
