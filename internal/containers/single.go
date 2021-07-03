@@ -13,11 +13,7 @@ func (s singleElement) DstEl() interface{} {
 	return s.dst
 }
 
-func (s singleElement) AddElementWithSubkey(_, _ string, value interface{}) {
-	s.AddElement("", value)
-}
-
-func (s singleElement) AddElement(_ string, value interface{}) {
+func (s singleElement) AddElement(_, _ string, value interface{}) {
 	val := reflect.ValueOf(value)
 	assignableType := s.assignableValue.Type()
 	if assignableType.AssignableTo(val.Type()) {

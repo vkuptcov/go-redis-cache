@@ -64,7 +64,7 @@ func (st *ContainersSuite) TestAddElementsIntoSliceContainer_DstDefinedAsSlice()
 	for i := 0; i < 5; i++ {
 		k := faker.RandomString(5)
 		v := faker.Lorem().Sentence(2)
-		c.AddElement(k, &v)
+		c.AddElement(k, "", &v)
 		expectedSlice = append(expectedSlice, v)
 		st.Run(strconv.Itoa(i), func() {
 			st.Require().EqualValues(expectedSlice, dst)
@@ -80,7 +80,7 @@ func (st *ContainersSuite) TestAddElementsIntoSliceContainer_DstDefinedAsInterfa
 	for i := 0; i < 5; i++ {
 		k := faker.RandomString(5)
 		v := faker.Lorem().Sentence(2)
-		c.AddElement(k, &v)
+		c.AddElement(k, "", &v)
 		expectedSlice = append(expectedSlice, v)
 		st.Run(strconv.Itoa(i), func() {
 			st.Require().EqualValues(expectedSlice, dst)
@@ -97,7 +97,7 @@ func (st *ContainersSuite) TestAddElementsIntoMapContainer_DstDefinedAsMap() {
 	for i := 0; i < 5; i++ {
 		k := faker.RandomString(5)
 		v := faker.Lorem().Sentence(2)
-		c.AddElement(k, &v)
+		c.AddElement(k, "", &v)
 		expectedMap[k] = v
 		st.Run(strconv.Itoa(i), func() {
 			st.Require().EqualValues(expectedMap, dst)
@@ -114,7 +114,7 @@ func (st *ContainersSuite) TestAddElementsIntoMapContainer_DstDefinedAsInterface
 	for i := 0; i < 5; i++ {
 		k := faker.RandomString(5)
 		v := faker.Lorem().Sentence(2)
-		c.AddElement(k, &v)
+		c.AddElement(k, "", &v)
 		expectedMap[k] = v
 		st.Run(strconv.Itoa(i), func() {
 			st.Require().EqualValues(expectedMap, dst)
@@ -139,7 +139,7 @@ func (st *ContainersSuite) TestAddElementsIntoMapOfMapsContainer_DstDefinedAsMap
 	for k, internalMap := range expectedMap {
 		for f, val := range internalMap {
 			v := val
-			c.AddElementWithSubkey(k, f, &v)
+			c.AddElement(k, f, &v)
 		}
 	}
 	st.Require().EqualValues(expectedMap, dst)
@@ -162,7 +162,7 @@ func (st *ContainersSuite) TestAddElementsIntoMapOfMapsContainer_DstDefinedAsInt
 	for k, internalMap := range expectedMap {
 		for f, val := range internalMap {
 			v := val
-			c.AddElementWithSubkey(k, f, &v)
+			c.AddElement(k, f, &v)
 		}
 	}
 	st.Require().EqualValues(expectedMap, dst)
@@ -173,7 +173,7 @@ func (st *ContainersSuite) TestAddElementsIntoSingleContainer_DstDefinedAsString
 	c, err := NewContainer(&dst)
 	st.Require().NoError(err, "No error expected on container creation")
 	v := faker.Lorem().Sentence(2)
-	c.AddElement(faker.RandomString(5), &v)
+	c.AddElement(faker.RandomString(5), "", &v)
 	st.Require().EqualValues(v, dst)
 }
 
@@ -182,7 +182,7 @@ func (st *ContainersSuite) TestAddElementsIntoSingleContainer_DstDefinedAsInterf
 	c, err := NewContainer(&dst)
 	st.Require().NoError(err, "No error expected on container creation")
 	v := faker.Lorem().Sentence(2)
-	c.AddElement(faker.RandomString(5), &v)
+	c.AddElement(faker.RandomString(5), "", &v)
 	st.Require().EqualValues(v, dst)
 }
 
