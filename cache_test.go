@@ -12,7 +12,6 @@ import (
 	"syreclabs.com/go/faker"
 
 	cache "github.com/vkuptcov/go-redis-cache/v7"
-	"github.com/vkuptcov/go-redis-cache/v7/internal/marshaller"
 	"github.com/vkuptcov/go-redis-cache/v7/marshallers"
 )
 
@@ -20,7 +19,7 @@ type BaseCacheSuite struct {
 	suite.Suite
 	client     *redis.Client
 	cache      *cache.Cache
-	marshaller cache.Marshaller
+	marshaller marshallers.Marshaller
 	ctx        context.Context
 }
 
@@ -31,7 +30,7 @@ func (st *BaseCacheSuite) SetupSuite() {
 
 	st.ctx = context.Background()
 
-	st.marshaller = marshaller.NewMarshaller(&marshallers.JSONMarshaller{})
+	st.marshaller = marshallers.NewMarshaller(&marshallers.JSONMarshaller{})
 
 	st.cache = cache.NewCache(cache.Options{
 		Redis:      st.client,

@@ -2,8 +2,6 @@ package marshallers
 
 import (
 	"encoding/json"
-
-	"github.com/vkuptcov/go-redis-cache/v7/internal"
 )
 
 type JSONMarshaller struct{}
@@ -16,4 +14,4 @@ func (t *JSONMarshaller) Unmarshal(data []byte, dst interface{}) error {
 	return json.Unmarshal(data, dst)
 }
 
-var _ internal.Marshaller = &JSONMarshaller{}
+var _ Marshaller = &JSONMarshaller{}

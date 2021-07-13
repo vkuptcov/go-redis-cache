@@ -4,8 +4,6 @@ import (
 	"github.com/vkuptcov/go-redis-cache/v7/internal"
 )
 
-type Marshaller internal.Marshaller
-
 type Item = internal.Item
 
 type Options = internal.Options

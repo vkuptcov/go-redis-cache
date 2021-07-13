@@ -1,6 +1,10 @@
 package internal
 
-import "time"
+import (
+	"time"
+
+	"github.com/vkuptcov/go-redis-cache/v7/marshallers"
+)
 
 type Options struct {
 	Redis Rediser
@@ -9,7 +13,7 @@ type Options struct {
 	// 1 hour by default
 	DefaultTTL time.Duration
 
-	Marshaller Marshaller
+	Marshaller marshallers.Marshaller
 
 	AbsentKeysLoader func(absentKeys ...string) (interface{}, error)
 
