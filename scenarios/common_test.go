@@ -46,7 +46,7 @@ type BaseCacheSuite struct {
 	suite.Suite
 	client     *redis.Client
 	cache      *cache.Cache
-	marshaller cache.Marshaller
+	marshaller marshallers.Marshaller
 	ctx        context.Context
 }
 
