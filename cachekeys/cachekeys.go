@@ -10,7 +10,11 @@ const (
 )
 
 func CreateKey(prefix, firstKey string, compounds ...string) string {
-	return prefix + keysSeparator + firstKey + keysSeparator + strings.Join(compounds, keysSeparator)
+	initialPart := prefix + keysSeparator + firstKey
+	if len(compounds) == 0 {
+		return initialPart
+	}
+	return initialPart + keysSeparator + strings.Join(compounds, keysSeparator)
 }
 
 // UnpackKey extracts parts from a key, with prefix.
