@@ -280,6 +280,54 @@ func (st *CacheAbsentKeysLoaderSuite) TestViaHGetFieldsForKey() {
 	}
 }
 
+func (st *CacheAbsentKeysLoaderSuite) TestViaHGetAll_AbsentDuplicatedKeys() {
+	dst := map[string]string{}
+	err := st.cache.
+		WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
+			return map[string]string{}, nil
+		}).
+		HGetAll(st.ctx, &dst, "non-exists", "non-exists")
+
+	st.Require().NoError(err, "No error expected on loading duplicated non-exist keys")
+}
+
+func (st *CacheAbsentKeysLoaderSuite) TestViaGet_AbsentDuplicatedKeys() {
+	dst := map[string]string{}
+	err := st.cache.
+		WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
+			return map[string]string{}, nil
+		}).
+		Get(st.ctx, &dst, "non-exists", "non-exists")
+
+	st.Require().NoError(err, "No error expected on loading duplicated non-exist keys")
+}
+
+func (st *CacheAbsentKeysLoaderSuite) TestViaHGetFieldsForKey_AbsentDuplicatedKeys() {
+	dst := map[string]string{}
+	err := st.cache.
+		WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
+			return map[string]string{}, nil
+		}).
+		HGetFieldsForKey(st.ctx, &dst, "non-exists-key", "non-exists-f1", "non-exists-f1")
+
+	st.Require().NoError(err, "No error expected on loading duplicated non-exist keys")
+}
+
+func (st *CacheAbsentKeysLoaderSuite) TestViaHGetKeysAndFields_AbsentDuplicatedKeys() {
+	dst := map[string]string{}
+	err := st.cache.
+		WithAbsentKeysLoader(func(absentKeys ...string) (interface{}, error) {
+			return map[string]string{}, nil
+		}).
+		HGetKeysAndFields(st.ctx, &dst, map[string][]string{
+			"non-exists-key":   {"non-exists-f1", "non-exists-f1"},
+			"non-exists-key-2": {"non-exists-f2", "non-exists-f2"},
+		},
+		)
+
+	st.Require().NoError(err, "No error expected on loading duplicated non-exist keys")
+}
+
 func TestCacheAbsentKeysLoaderSuite(t *testing.T) {
 	t.Parallel()
 	suite.Run(t, &CacheAbsentKeysLoaderSuite{})
