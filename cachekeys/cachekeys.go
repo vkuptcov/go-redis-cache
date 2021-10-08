@@ -17,7 +17,7 @@ func CreateKey(prefix, firstKey string, compounds ...string) string {
 	return initialPart + keysSeparator + strings.Join(compounds, keysSeparator)
 }
 
-// UnpackKey extracts parts from a key, with prefix.
+// UnpackKeyWithPrefix extracts parts from a key, with prefix.
 // E.g.
 // var prefix, userID string
 // UnpackKey("usr_by_id|123", &prefix, &userID)
