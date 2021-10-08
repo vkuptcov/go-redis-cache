@@ -172,6 +172,46 @@ func (st *GetMethodsSuite) TestHGetFieldsForKey() {
 	})
 }
 
+func (st *GetMethodsSuite) TestLoadEmptyKeysForGetMethods() {
+	st.Run("empty keys for Get", func() {
+		var dst map[string]string
+		st.Require().NoError(
+			st.cache.Get(st.ctx, &dst),
+			"no error expected",
+		)
+	})
+	st.Run("empty keys for HGetAll", func() {
+		var dst map[string]string
+		st.Require().NoError(
+			st.cache.HGetAll(st.ctx, &dst),
+			"no error expected",
+		)
+	})
+	st.Run("empty fields for HGetFieldsForKey", func() {
+		var dst map[string]string
+		st.Require().NoError(
+			st.cache.HGetFieldsForKey(st.ctx, &dst, "some-key"),
+			"no error expected",
+		)
+	})
+	st.Run("empty map for HGetKeysAndFields", func() {
+		var dst map[string]string
+		st.Require().NoError(
+			st.cache.HGetKeysAndFields(st.ctx, &dst, map[string][]string{}),
+			"no error expected",
+		)
+	})
+	st.Run("map with empty fields for HGetKeysAndFields", func() {
+		var dst map[string]string
+		st.Require().NoError(
+			st.cache.HGetKeysAndFields(st.ctx, &dst, map[string][]string{
+				"some-key": {},
+			}),
+			"no error expected",
+		)
+	})
+}
+
 func (st *GetMethodsSuite) prepareHashMapData() map[string]commonTestData {
 	st.T().Helper()
 	firstKey := faker.RandomString(7)

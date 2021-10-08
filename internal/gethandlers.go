@@ -10,6 +10,9 @@ import (
 )
 
 func Get(ctx context.Context, opts Options, dst interface{}, keys []string) error {
+	if len(keys) == 0 {
+		return nil
+	}
 	return getInternal(ctx, opts, dst, func(pipeliner redis.Pipeliner) {
 		for _, k := range keys {
 			_ = pipeliner.Get(k)
@@ -18,6 +21,9 @@ func Get(ctx context.Context, opts Options, dst interface{}, keys []string) erro
 }
 
 func HGetAll(ctx context.Context, opts Options, dst interface{}, keys []string) error {
+	if len(keys) == 0 {
+		return nil
+	}
 	return getInternal(ctx, opts, dst, func(pipeliner redis.Pipeliner) {
 		for _, k := range keys {
 			pipeliner.HGetAll(k)
@@ -26,9 +32,14 @@ func HGetAll(ctx context.Context, opts Options, dst interface{}, keys []string) 
 }
 
 func HGetFields(ctx context.Context, opts Options, dst interface{}, keysToFields map[string][]string) error {
+	if len(keysToFields) == 0 {
+		return nil
+	}
 	return getInternal(ctx, opts, dst, func(pipeliner redis.Pipeliner) {
 		for key, fields := range keysToFields {
-			pipeliner.HMGet(key, fields...)
+			if len(fields) > 0 {
+				pipeliner.HMGet(key, fields...)
+			}
 		}
 	})
 }
